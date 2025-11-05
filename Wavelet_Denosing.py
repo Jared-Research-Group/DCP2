@@ -5,41 +5,36 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tkinter             import filedialog
 import pywt
+from denoising import WaveletDenoising
 
-def DWT(f):
+def WDN(f):
     print('...DWT of Amplitude Data')
     df = pd.read_csv(f)
     Amp = df['Amplitude']
     Time = df['time']
+
+    wd = WaveletDenoising(normalize=False,
+                      wavelet='db3',
+                      level=10,
+                      thr_mode='hard',
+                      selected_level=None,
+                      method="universal",
+                      energy_perc=0.90)
    
-    DWTcoeffs = pywt.wavedec(Amp, 'db3',)
-    DWTcoeffs[-1] = np.zeros_like(DWTcoeffs[-1]) # rough version of denosing which sets the last two detal coeffs. to zero
-    DWTcoeffs[-2] = np.zeros_like(DWTcoeffs[-2])
-  
-   
-    filtered_data_dwt=pywt.waverec(DWTcoeffs,'db3',mode='symmetric',axis=-1)
-   
+    denoised_Amp = wd.fit(Amp)
 
-    sample_rate = 48000
-    
-
-    start_index = int(8*sample_rate)
-    end_index = int(8.01*sample_rate)
-
-
-    plt.figure(figsize=(15,6))
-    plt.plot(Time[start_index:end_index],Amp[start_index:end_index],color='red')
-    plt.plot(Time[start_index:end_index],filtered_data_dwt[start_index:end_index], markerfacecolor='none',color='black')
-    plt.legend(['Real Data', 'Denoised Data'], loc='best')
+    fig = plt.figure()
+    plt.plot(Time, Amp, 'blue')
+    plt.plot(Time, denoised_Amp,'red')
     plt.show()
-    return
 
 def main():
     if len(sys.argv) != 2:
         csv_file = filedialog.askopenfilename()
     else:
         csv_file = sys.argv[1]
-    DWT(csv_file)
-
+    
+    wavelet = WDN(csv_file)
+  
 if __name__ == "__main__":
     main()
