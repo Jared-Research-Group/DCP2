@@ -4,7 +4,7 @@ from tkinter import filedialog
 from lembox_visualization import getLemboxData
 from position import readRSI, plotPosValColormap
 from audio_time_scale import mic_time
-from data_manipulation import dfToCsv, getStartStop, dfHasColumn, getRollingAvg
+from data_manipulation import dfToCsv, getStartStop, dfHasColumn, getRollingAvg, quickPlot
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -72,18 +72,27 @@ def main():
     else:
         dir = sys.argv[1]
     
-    df = alignData(dir, True)
+    df = alignData(dir, False)
     
     startTime, stopTime = getStartStop(df['Avg_Voltage(V)'], 1)
     #startTime += 2 * sample_rates['mic'] ; stopTime -= 2 * sample_rates['mic']
 
-    plotPosValColormap((df['Pos_x(mm)'][startTime:stopTime], df['Pos_y(mm)'][startTime:stopTime], df['Pos_z(mm)'][startTime:stopTime]), df['Avg_Current(A)'][startTime:stopTime], 'Rolling Average Current (A)', 'Current as a function of position')
-    plt.savefig(dir + '/visualizations/current_3d.png', bbox_inches='tight')
-    plotPosValColormap((df['Pos_x(mm)'][startTime:stopTime], df['Pos_y(mm)'][startTime:stopTime], df['Pos_z(mm)'][startTime:stopTime]), df['Avg_Voltage(V)'][startTime:stopTime], 'Rolling Average Voltage (V)', 'Voltage as a function of position')
-    plt.savefig(dir + '/visualizations/voltage_3d.png', bbox_inches='tight')
-    plotPosValColormap((df['Pos_x(mm)'][startTime + int(0.05 * sample_rates['mic']):stopTime], df['Pos_y(mm)'][startTime + int(0.05 * sample_rates['mic']):stopTime], df['Pos_z(mm)'][startTime + int(0.05 * sample_rates['mic']):stopTime]), pd.Series(getRollingAvg((df['Amplitude'][startTime:stopTime]), int(0.05 * sample_rates['mic']))), 'Amplitude', 'Amplitude as a function of position', 0, 0.003)
-    plt.savefig(dir + '/visualizations/amplitude_3d.png', bbox_inches='tight')
+    #startTime += sample_rates['mic']*2
+    #stopTime = startTime + int(sample_rates['mic']*.25)
 
-    print(np.nanmax(getRollingAvg(df['Amplitude'][startTime:stopTime], int(0.05 * sample_rates['mic']))))
+    #data = [[[df['Pos_y(mm)'][startTime:stopTime], df['Voltage(V)'][startTime:stopTime]], [df['Pos_y(mm)'][startTime:stopTime], df['Current(A)'][startTime:stopTime]], [df['Pos_y(mm)'][startTime:stopTime], abs(df['Amplitude'][startTime:stopTime])]]]
+    #quickPlot(data)
+
+
+    #plt.show()
+
+    plotPosValColormap((df['Pos_x(mm)'][startTime:stopTime], df['Pos_y(mm)'][startTime:stopTime], df['Pos_z(mm)'][startTime:stopTime]), df['Avg_Current(A)'][startTime:stopTime], 'Rolling Average Current (A)', 'Current as a function of position')
+    plt.savefig(dir + '/visualizations/current_3d.png')
+    plotPosValColormap((df['Pos_x(mm)'][startTime:stopTime], df['Pos_y(mm)'][startTime:stopTime], df['Pos_z(mm)'][startTime:stopTime]), df['Avg_Voltage(V)'][startTime:stopTime], 'Rolling Average Voltage (V)', 'Voltage as a function of position')
+    plt.savefig(dir + '/visualizations/voltage_3d.png')
+    plotPosValColormap((df['Pos_x(mm)'][startTime + int(0.05 * sample_rates['mic']):stopTime], df['Pos_y(mm)'][startTime + int(0.05 * sample_rates['mic']):stopTime], df['Pos_z(mm)'][startTime + int(0.05 * sample_rates['mic']):stopTime]), pd.Series(getRollingAvg((df['Amplitude'][startTime:stopTime]), int(0.05 * sample_rates['mic']))), 'Amplitude', 'Amplitude as a function of position', 0, 0.003)
+    plt.savefig(dir + '/visualizations/amplitude_3d.png')
+
+    #print(np.nanmax(getRollingAvg(df['Amplitude'][startTime:stopTime], int(0.05 * sample_rates['mic']))))
     
 if __name__ == '__main__': main()

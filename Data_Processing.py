@@ -31,6 +31,7 @@ def process_data_folder(folder_path):
     for file_path in folder.glob('*'):
         if file_path.is_file():
             file_name = file_path.name
+            
             if file_name in processing_rules:
                 script_name = processing_rules[file_name]
                 script_path = script_dir / script_name

@@ -32,12 +32,12 @@ def add_vertical_color_scale_bar(image, width, height, global_min, global_max):
 ###################################################################################################
 # This section is where you set the minimum and maximum values of the scale bar.    
     # Test Range (using raw values directly)
-    #min_temperature = global_min
-    #max_temperature = global_max
+    min_temperature = global_min
+    max_temperature = global_max
 
     #Lower Range
-    min_temperature = -0.000000045*global_min*global_min + 0.0095*global_min-85
-    max_temperature = -0.000000045*global_max*global_max + 0.0095*global_max-85
+    #min_temperature = -0.000000045*global_min*global_min + 0.0095*global_min-85
+    #max_temperature = -0.000000045*global_max*global_max + 0.0095*global_max-85
     
     #Upper Range
     #min_temperature = 0.0468*global_min-267.72

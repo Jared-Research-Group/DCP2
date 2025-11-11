@@ -16,7 +16,7 @@ def readRSI(f, window = int(0.25*250), forceDataUpdate = False):
 
     df = pd.read_csv(f)
 
-    possible_error_rates = [1000, 500]
+    possible_error_rates = [1000, 750, 500]
 
     for r in possible_error_rates:
         cur_rate_time = df['RelativeTime'][int(len(df['RelativeTime'])/2) + RSI_rate] - df['RelativeTime'][int(len(df['RelativeTime'])/2)]
@@ -128,11 +128,31 @@ def plotPosValColormap(pos, val, val_id='', title='', cmin = 0, cmax = -1, spars
     ax.locator_params(axis='z', nbins = 5)
     ax.locator_params(axis='z', nbins = 3)
     ax.set_title(title, y=1, loc='center')
-    #fig.set_size_inches(18,10)
+    fig.set_size_inches(18,10)
     #ax.set_zticklabels([])
     #ax.margins(0.01)
     fig.colorbar(scatter, label=val_id, shrink=0.5)
     #fig.tight_layout()
+
+def plotMultiBeadColor(pos, val):
+
+    min = np.nanmin(val)
+    for i, v in enumerate(val):
+        val[i] = v - min
+
+    max = np.nanmax(val)
+    for i, v in enumerate(val):
+        val[i] = v/max
+
+    fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
+
+    for p0, p1, p2, v in zip(pos[0], pos[1], pos[2], val):
+        ax.plot(p0,p1,p2, c=(1-v,0,v))
+
+    ax.set_box_aspect(aspect=(np.nanmax(pos[0]) - np.nanmin(pos[0]), np.nanmax(pos[1]) - np.nanmin(pos[1]), np.nanmax(pos[2]) - np.nanmin(pos[2])))
+    ax.disable_mouse_rotation()
+
+    return
 
 def main():
 

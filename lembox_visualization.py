@@ -6,6 +6,8 @@ import pandas            as pd
 import numpy             as np
 import librosa
 from tkinter             import filedialog
+import subprocess
+from pathlib import Path
 
 from data_manipulation import getRollingAvg, getRollingStdDev, getRollingSkew, getRollingKurtosis, getStartStop, dfHasColumn, dfAddColumn, dfToCsv
 
@@ -15,6 +17,10 @@ def getLemboxData(f, n = 1000, forceDataUpdate=False):
     print('         Reading LEMBOX Data...')
 
     df = pd.read_csv(f)
+
+    if not dfHasColumn(df, 'Scaled_Current(A)'):
+        subprocess.run([sys.executable, str(Path(__file__).parent) + '/lembox_scaling.py', str(f)], check=True)
+        df = pd.read_csv(f)
 
     curr = df['Scaled_Current(A)'].to_numpy()
     volt = df['Scaled_Voltage(V)'].to_numpy()
@@ -47,17 +53,38 @@ def drawStats(t, i, v, dir, scale=sample_rate):
     if type(i) != list: i = i.tolist()
     if type(v) != list: v = v.tolist()
 
-    print('             Getting Rolling StdDevs...')
-    sd_i = getRollingStdDev(i, scale)
-    sd_v = getRollingStdDev(v, scale)
+    df = pd.read_csv(dir + '/lembox_data.csv')
+    if dfHasColumn(df, 'StdDev_Current(A)'):
+        sd_i = df['StdDev_Current(A)']
+        sd_v = df['StdDev_Voltage(V)']
+        skew_i = df['Skew_Current']
+        skew_v = df['Skew_Voltage']
+        k_i = df['Kurtosis_Current']
+        k_v = df['Kurtosis_Voltage']
 
-    print('             Getting Rolling Skews...')
-    skew_i = getRollingSkew(i, scale)
-    skew_v = getRollingSkew(v, scale)
+    else:
+        print('             Getting Rolling StdDevs...')
+        sd_i = getRollingStdDev(i, scale)
+        sd_v = getRollingStdDev(v, scale)
 
-    print('             Getting Rolling Kurtosis...')
-    k_i = getRollingKurtosis(i, scale)
-    k_v = getRollingKurtosis(v, scale)
+        #dfAddColumn(df, sd_i, 'StdDev_Current(A)')
+        #dfAddColumn(df, sd_v, 'StdDev_Voltage(V)')
+
+        print('             Getting Rolling Skews...')
+        skew_i = getRollingSkew(i, scale, sd_i)
+        skew_v = getRollingSkew(v, scale, sd_v)
+
+        #dfAddColumn(df, skew_i, 'Skew_Current')
+        #dfAddColumn(df, skew_v, 'Skew_Voltage')
+
+        print('             Getting Rolling Kurtosis...')
+        k_i = getRollingKurtosis(i, scale, sd_i)
+        k_v = getRollingKurtosis(v, scale, sd_v)
+
+        #dfAddColumn(df, k_i, 'Kurtosis_Current')
+        #dfAddColumn(df, k_v, 'Kurtosis_Voltage')
+
+        #dfToCsv(df, dir + '/lembox_data.csv')
 
     t = t[scale-1:]
     i = i[scale-1:]
@@ -70,7 +97,9 @@ def drawStats(t, i, v, dir, scale=sample_rate):
 
     for i, typ in enumerate(data):
         for j, d in enumerate(typ):
-            ax[j][i].scatter(t, d)
+            ax[j][i].scatter(t, d, s=0.005)
+
+            if j > 1: ax[j][i].set_ylim(bottom = -10, top=10)
 
         for j, l in enumerate(label[i]):
             ax[j][i].set_ylabel(l)
@@ -79,8 +108,8 @@ def drawStats(t, i, v, dir, scale=sample_rate):
     for a in ax[-1]: a.set_xlabel('Time (s)')
     fig.set_size_inches(30,10)
     fig.suptitle('Rolling Stats')
-    plt.show()
-    #plt.savefig(dir + '/visualizations/stats.png')
+    #plt.show()
+    plt.savefig(dir + '/visualizations/stats.png')
 
     print('             Stats Complete!')
 
@@ -158,11 +187,10 @@ def drawLemboxVis(f, **kwargs):
     if stopTime > len(avgV):
         stopTime = len(avgV)
 
-    t = t[startTime:stopTime]
-    i = i[startTime:stopTime]
-    v = v[startTime:stopTime]
-    avgV = avgV[startTime:stopTime]
-    avgI = avgI[startTime:stopTime]
+    st, so = getStartStop(v, 1)
+
+    st -= 20000
+    so -= 20000
 
     print('         Drawing LEMBOX vis...')
 
@@ -174,9 +202,8 @@ def drawLemboxVis(f, **kwargs):
     l = int(10 * sample_rate)
     shortscaleFFT(v[begin:(begin+l)], i[begin:(begin+l)], f, sample_rate)
 
-    #drawStats(np.linspace(0., 10., 1000), np.random.rand(1000), np.random.rand(1000), dir, 10)
-    drawStats(t, i, v, dir, 20000)
-    plotLemboxData(v, t, i, avgV, avgI, t_scale, file, p_start, p_stop)
+    drawStats(t[startTime:stopTime], i[startTime:stopTime], v[startTime:stopTime], dir, 20000)
+    plotLemboxData(v[startTime:stopTime], t[startTime:stopTime], i[startTime:stopTime], avgV[startTime:stopTime], avgI[startTime:stopTime], t_scale, file, p_start, p_stop)
     
     return
 

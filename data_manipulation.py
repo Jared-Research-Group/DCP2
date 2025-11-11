@@ -1,9 +1,13 @@
 # this file contains helper functions to perform computations and store calcualted values
 
+import matplotlib.pyplot as plt
 import numpy  as np
 import pandas as pd
 import sys
 import math
+import tkinter as tk
+from tkinter import filedialog
+import os
 
 def getRollingAvg(arr, avgLen = 1000):
     if np.isnan(arr).any():
@@ -69,12 +73,13 @@ def getRollingStdDev(arr, sd_scale=5000):
 
     return sd
 
-def getRollingSkew(arr, sk_scale=5000):
+def getRollingSkew(arr, sk_scale, sd):
 
     avg_arr = getRollingAvg(arr, sk_scale)
     avg_arr = avg_arr[sk_scale - 1:]
 
-    sd = getRollingStdDev(arr, sk_scale)
+    if not sd:
+        sd = getRollingStdDev(arr, sk_scale)
 
     buffer = [[], [], []]
     for a in arr[:sk_scale - 1]:
@@ -105,12 +110,13 @@ def getRollingSkew(arr, sk_scale=5000):
 
     return sk
 
-def getRollingKurtosis(arr, k_scale=5000):
+def getRollingKurtosis(arr, k_scale, sd):
 
     avg_arr = getRollingAvg(arr, k_scale)
     avg_arr = avg_arr[k_scale - 1:]
 
-    sd = getRollingStdDev(arr, k_scale)
+    if not sd:
+        sd = getRollingStdDev(arr, k_scale)
 
     buffer = [[], [], [], []]
     for a in arr[:k_scale - 1]:
@@ -168,6 +174,20 @@ def getStartStop(testVal, testLimit = 1):
 
     return startTime, stopTime
 
+def quickPlot(data, s=0.005):
+    plt.style.use('_mpl-gallery')
+    fig, ax = plt.subplots(len(data[0]), len(data), constrained_layout=True)
+
+    if len(data) > 1:
+        for j, d in enumerate(data):
+            for i, val in enumerate(d):
+                ax[i][j].scatter(val[0], val[1], s=s)
+    else:
+        for i, val in enumerate(data[0]):
+            ax[i].scatter(val[0], val[1], s=s)
+
+    return
+
 def getStdDev(arr):
     return np.std(arr)
 
@@ -189,6 +209,16 @@ def csvHasColumn(f, id):
     if id in pd.read_csv(f, nrows=1): return True
     return False
 
-print(getRollingStdDev([500, 2, 100, 450, 600], 5))
-print(getRollingSkew([500, 2, 100, 450, 600], 5))
-print(getRollingKurtosis([500, 2, 100, 450, 600], 5))
+def selectFolder():
+    root = tk.Tk()
+    root.withdraw()
+    path = filedialog.askdirectory(
+        title='Select Top-Level Folder',
+        initialdir = os.path.expanduser('~')
+    )
+
+    return path
+
+#print(getRollingStdDev([500, 2, 100, 450, 600], 5))
+#print(getRollingSkew([500, 2, 100, 450, 600], 5))
+#print(getRollingKurtosis([500, 2, 100, 450, 600], 5))
