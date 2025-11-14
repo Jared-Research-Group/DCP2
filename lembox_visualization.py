@@ -198,12 +198,16 @@ def drawLemboxVis(f, **kwargs):
     mpl.rcParams['lines.markersize'] = pt_sz*2
     mpl.rcParams['figure.constrained_layout.use'] = True
 
-    begin = 5* sample_rate
-    l = int(10 * sample_rate)
-    shortscaleFFT(v[begin:(begin+l)], i[begin:(begin+l)], f, sample_rate)
+    begin = startTime + int(5* sample_rate)
+    end = stopTime - int(5 * sample_rate)
+    shortscaleFFT(v[begin:end], i[begin:end], f, sample_rate)
 
-    drawStats(t[startTime:stopTime], i[startTime:stopTime], v[startTime:stopTime], dir, 20000)
+    #drawStats(t[startTime:stopTime], i[startTime:stopTime], v[startTime:stopTime], dir, 20000)
     plotLemboxData(v[startTime:stopTime], t[startTime:stopTime], i[startTime:stopTime], avgV[startTime:stopTime], avgI[startTime:stopTime], t_scale, file, p_start, p_stop)
+    lemboxSpectrogram(v[startTime:stopTime], i[startTime:stopTime], dir)
+
+    print('Average Voltage: ' + str(np.mean(v[begin:end])))
+    print('Average Current: ' + str(np.mean(i[begin:end])))
     
     return
 
@@ -220,18 +224,41 @@ def shortscaleFFT(v, i, f, rate):
 
     #mpl.rcParams['lines.markersize'] = 0.05*2
     plt.style.use('_mpl-gallery')
-    fig, ax = plt.subplots(2,1)
-    ax[0].plot(freq[1:int(len(freq)/50)], np.abs(iDFT[1:int(len(freq)/50)]), 'r', alpha=.85, label='Current FFT')
-    ax[1].plot(freq[1:int(len(freq)/50)], np.abs(vDFT[1:int(len(freq)/50)]), 'b', alpha = .85, label='Voltage FFT')
+    fig, ax = plt.subplots(1, 2)
+    ax[0].plot(freq[1:int(len(freq)/5)], np.abs(iDFT[1:int(len(freq)/5)]), 'b', alpha=.85, label='Current FFT')
+    ax[1].plot(freq[1:int(len(freq)/5)], np.abs(vDFT[1:int(len(freq)/5)]), 'r', alpha = .85, label='Voltage FFT')
     ax[1].set_xlabel('Frequency (Hz)')
     ax[1].set_ylabel('Voltage FFT Amplitude')
     ax[0].set_ylabel('Current FFT Amplitude')
-    fig.set_size_inches(15,20)
+    fig.set_size_inches(30,15)
     plt.savefig(dir + '/visualizations/lembox_fft.png')
     
     return
 
-def lemboxSpectrogram(v, i, t, d):
+def lemboxSpectrogram(v, i, d):
+
+    v = np.array(v)
+    i = np.array(i)
+
+    vFT = librosa.stft(v)
+    V_db = librosa.amplitude_to_db(np.abs(vFT), ref=np.max)
+
+    iFT = librosa.stft(i)
+    I_db = librosa.amplitude_to_db(np.abs(iFT), ref=np.max)
+
+    fig, ax = plt.subplots(layout='constrained')
+    fig.set_size_inches(15,10)
+    librosa.display.specshow(V_db, x_axis="time", y_axis="hz", sr=sample_rate)
+    plt.colorbar()
+    ax.set_title('Voltage')
+    plt.savefig(d + '/visualizations/voltage_spectrogram.png')
+
+    fig, ax = plt.subplots(layout='constrained')
+    fig.set_size_inches(15,10)
+    librosa.display.specshow(I_db, x_axis="time", y_axis="hz", sr=sample_rate)
+    plt.colorbar()
+    ax.set_title('Current')
+    plt.savefig(d + '/visualizations/Current_spectrogram.png')
 
     return
 

@@ -27,9 +27,20 @@ def drawAudioVis(wavFile):
 
     fig, ax = plt.subplots(layout='constrained')
     fig.set_size_inches(15,10)
-    librosa.display.specshow(S_db, x_axis="time", y_axis="hz", sr=sr)
+    librosa.display.specshow(S_db, x_axis="time", y_axis="hz", sr=sr, fmax=2000)
     plt.colorbar()
     plt.savefig(dir + '/visualizations/audio_spectrogram.png')
+
+
+    arrDFT = np.fft.rfft(array)
+    freq = np.fft.rfftfreq(len(array), 1/sr)
+
+    #mpl.rcParams['lines.markersize'] = 0.05*2
+    plt.style.use('_mpl-gallery')
+    fig, ax = plt.subplots()
+    ax.plot(freq[1:int(len(freq)/25 * 2)], np.abs(arrDFT[1:int(len(freq)/25 * 2)]), 'b', alpha=.85, label='Current FFT')
+    fig.set_size_inches(15,15)
+    plt.savefig(dir + '/visualizations/audio_fft.png')
 
     return
 

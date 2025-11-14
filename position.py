@@ -12,19 +12,18 @@ plt.style.use('_mpl-gallery')
 def readRSI(f, window = int(0.25*250), forceDataUpdate = False):
     print('         Reading RSI data...')
 
-    RSI_rate = 250
-
     df = pd.read_csv(f)
+    RSI_rate = int(len(df['RelativeTime'])/df['RelativeTime'][-1])
 
-    possible_error_rates = [1000, 750, 500]
+    #possible_error_rates = [1000, 750, 500]
 
-    for r in possible_error_rates:
-        cur_rate_time = df['RelativeTime'][int(len(df['RelativeTime'])/2) + RSI_rate] - df['RelativeTime'][int(len(df['RelativeTime'])/2)]
-        new_rate_time = df['RelativeTime'][int(len(df['RelativeTime'])/2) + r] - df['RelativeTime'][int(len(df['RelativeTime'])/2)]
+    #for r in possible_error_rates:
+    #    cur_rate_time = df['RelativeTime'][int(len(df['RelativeTime'])/2) + RSI_rate] - df['RelativeTime'][int(len(df['RelativeTime'])/2)]
+    #    new_rate_time = df['RelativeTime'][int(len(df['RelativeTime'])/2) + r] - df['RelativeTime'][int(len(df['RelativeTime'])/2)]
 
-        if abs(new_rate_time - 1) < abs(cur_rate_time - 1):
-            RSI_rate = r
-            window = int(0.25*RSI_rate)
+    #    if abs(new_rate_time - 1) < abs(cur_rate_time - 1):
+    #        RSI_rate = r
+    window = int(0.25*RSI_rate)
 
     pos_x = df['RIst_X']
     pos_y = df['RIst_Y']
@@ -147,7 +146,7 @@ def plotMultiBeadColor(pos, val):
     fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
 
     for p0, p1, p2, v in zip(pos[0], pos[1], pos[2], val):
-        ax.plot(p0,p1,p2, c=(1-v,0,v))
+        ax.plot(p0,p1,p2, c=(v,0,0))
 
     ax.set_box_aspect(aspect=(np.nanmax(pos[0]) - np.nanmin(pos[0]), np.nanmax(pos[1]) - np.nanmin(pos[1]), np.nanmax(pos[2]) - np.nanmin(pos[2])))
     ax.disable_mouse_rotation()

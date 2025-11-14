@@ -28,9 +28,9 @@ try:
 
         for i, line in enumerate(r[1:]):
             numCommas = line.count(',')
-            invalidCommas = numCommas != 6 and numCommas != 8
+            invalidCommas = numCommas != 6 and numCommas != 8 and numCommas != 11
             if 'Sample' in line or invalidCommas:
-                print(i)
+                #print('line' + str(i))
                 #print(line)
                 rm.append(i + 1)
 
