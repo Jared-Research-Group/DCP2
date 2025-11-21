@@ -9,10 +9,10 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 
-def getRollingAvg(arr, avgLen = 1000):
+def getRollingAvg(arr, avgLen=1000):
     if np.isnan(arr).any():
         print('Array has NaN')
-    
+
     if avgLen <= 1:
         print('Average window too small: must be larger than 2')
         sys.exit(1)
@@ -176,7 +176,7 @@ def getStartStop(testVal, testLimit = 1):
 
 def quickPlot(data, s=0.005):
     plt.style.use('_mpl-gallery')
-    fig, ax = plt.subplots(len(data[0]), len(data), constrained_layout=True)
+    fig, ax = plt.subplots(len(data), 1, constrained_layout=True)
 
     if len(data) > 1:
         for j, d in enumerate(data):

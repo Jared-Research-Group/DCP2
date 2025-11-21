@@ -9,7 +9,7 @@ from tkinter             import filedialog
 import subprocess
 from pathlib import Path
 
-from data_manipulation import getRollingAvg, getRollingStdDev, getRollingSkew, getRollingKurtosis, getStartStop, dfHasColumn, dfAddColumn, dfToCsv
+from data_manipulation import getRollingAvg, getRollingStdDev, getRollingSkew, getRollingKurtosis, getStartStop, dfHasColumn, dfAddColumn, dfToCsv, quickPlot
 
 sample_rate = 20000 #hz
 
@@ -142,23 +142,58 @@ def drawStats(t, i, v, dir, startTime, stopTime, size, scale=sample_rate):
     print('             Stats Complete!')
     return
 
-def plotLemboxData(v, t, i, avgV, avgI, t_scale, file, p_start, p_stop):
+def plotLemboxData(v, t, i, avgV, avgI, t_scale, file):
         fig, ax = plt.subplots(2,2, sharex=True)
 
-        ax[0,0].scatter(t[p_start:p_stop], v[p_start:p_stop])
+        ax[0,0].scatter(t, v)
         ax[0,0].set_title('Voltage')
         ax[0,0].set_ylabel('Voltage (V)')
 
-        ax[1,0].scatter(t[p_start:p_stop], avgV[p_start:p_stop])
+        ax[1,0].scatter(t, avgV)
         ax[1,0].set_title('Rolling Voltage Average Over ' + t_scale + ' Seconds')
         ax[1,0].set_ylabel('Average Voltage (V)')
         ax[1,0].set_xlabel('Time (s)')
 
-        ax[0,1].scatter(t[p_start:p_stop], i[p_start:p_stop])
+        ax[0,1].scatter(t, i)
         ax[0,1].set_title('Current')
         ax[0,1].set_ylabel('Current (A)')
 
-        ax[1,1].scatter(t[p_start:p_stop], avgI[p_start:p_stop])
+        ax[1,1].scatter(t, avgI)
+        ax[1,1].set_title('Rolling Current Average Over ' + t_scale + ' Seconds')
+        ax[1,1].set_ylabel('Average Current (A)')
+        ax[1,1].set_xlabel('Time (s)')
+
+        fig.set_size_inches(30,10)
+        plt.savefig(file)
+
+        return
+
+def plotShortscaleLemboxData(v, t, i, file, n=25, p_start=20000*5, p_stop=20000*7):
+        fig, ax = plt.subplots(2,2, sharex=True)
+
+        v = np.array(v)
+        i = np.array(i)
+
+        avgV = getRollingAvg(v, n)
+        avgI = getRollingAvg(i, n)
+
+        t_scale = t[int(len(t)/2) + n] - t[int(len(t)/2)]        # compute time length of rolling average
+        t_scale = f"{t_scale:.5f}"
+
+        ax[0,0].plot(t[p_start:p_stop], v[p_start:p_stop])
+        ax[0,0].set_title('Voltage')
+        ax[0,0].set_ylabel('Voltage (V)')
+
+        ax[1,0].plot(t[p_start:p_stop], avgV[p_start:p_stop])
+        ax[1,0].set_title('Rolling Voltage Average Over ' + t_scale + ' Seconds')
+        ax[1,0].set_ylabel('Average Voltage (V)')
+        ax[1,0].set_xlabel('Time (s)')
+
+        ax[0,1].plot(t[p_start:p_stop], i[p_start:p_stop])
+        ax[0,1].set_title('Current')
+        ax[0,1].set_ylabel('Current (A)')
+
+        ax[1,1].plot(t[p_start:p_stop], avgI[p_start:p_stop])
         ax[1,1].set_title('Rolling Current Average Over ' + t_scale + ' Seconds')
         ax[1,1].set_ylabel('Average Current (A)')
         ax[1,1].set_xlabel('Time (s)')
@@ -172,10 +207,7 @@ def drawLemboxVis(f, **kwargs):
 
     dir = os.path.split(f)[0]
     file = dir + '/visualizations/lembox.png'
-
-    startup = False
-    p_start = 0
-    p_stop = -1
+    ss_file = dir + '/visualizations/shortscale_lembox.png'
 
     if 'pt_sz' in kwargs:
         pt_sz = kwargs['pt_sz']
@@ -187,20 +219,7 @@ def drawLemboxVis(f, **kwargs):
     else:
         n = 1000
 
-    # this should call a second call to drawLemboxVis
-    if 'startup' in kwargs:
-        if kwargs['startup'] == True:
-            pt_sz = 0.25
-            n = 200
-            file = dir + '/visualizations/shortscale_lembox.png'
-            startup = True
-            #p_start = int(1.95*sample_rate)
-            #p_stop = int(2*sample_rate) + int(0.5*sample_rate) + int(0.1*sample_rate)
-            p_start = int(10*sample_rate)
-            p_stop = int(10*sample_rate) + int(0.6*sample_rate)
-
-
-    t, i, v, avgI, avgV = getLemboxData(f, n)
+    t, i, v, avgI, avgV, globalStart = getLemboxData(f, n, False)
 
     t_scale = t[int(len(t)/2) + n] - t[int(len(t)/2)]        # compute time length of rolling average
     t_scale = f"{t_scale:.5f}"
@@ -225,16 +244,29 @@ def drawLemboxVis(f, **kwargs):
     mpl.rcParams['lines.markersize'] = pt_sz*2
     mpl.rcParams['figure.constrained_layout.use'] = True
 
-    begin = startTime + int(5* sample_rate)
+    begin = startTime + int(7* sample_rate)
     end = stopTime - int(5 * sample_rate)
-    shortscaleFFT(v[begin:end], i[begin:end], f, sample_rate)
 
-    drawStats(t[startTime:stopTime], i[startTime:stopTime], v[startTime:stopTime], dir, startTime, stopTime, len(t), 20000)
-    plotLemboxData(v[startTime:stopTime], t[startTime:stopTime], i[startTime:stopTime], avgV[startTime:stopTime], avgI[startTime:stopTime], t_scale, file, p_start, p_stop)
+    #drawStats(t[startTime:stopTime], i[startTime:stopTime], v[startTime:stopTime], dir, 20000)
+    plotLemboxData(v[startTime:stopTime], t[startTime:stopTime], i[startTime:stopTime], avgV[startTime:stopTime], avgI[startTime:stopTime], t_scale, file)
+    mpl.rcParams['lines.markersize'] = 0.5
+    plotLemboxData(v[int(22.5*20000):int(32.5*20000)], t[int(22.5*20000):int(32.5*20000)], i[int(22.5*20000):int(32.5*20000)], avgV[int(22.5*20000):int(32.5*20000)], avgI[int(22.5*20000):int(32.5*20000)], t_scale, dir + '/visualizations/lembox_defect.png')
+    plotLemboxData(v[int(22.5*20000):int(30*20000)], t[int(22.5*20000):int(30*20000)], i[int(22.5*20000):int(30*20000)], avgV[int(22.5*20000):int(30*20000)], avgI[int(22.5*20000):int(30*20000)], t_scale, dir + '/visualizations/lembox_defect_2.png')
+    plotLemboxData(v[int(30*20000):int(32.5*20000)], t[int(30*20000):int(32.5*20000)], i[int(30*20000):int(32.5*20000)], avgV[int(30*20000):int(32.5*20000)], avgI[int(30*20000):int(32.5*20000)], t_scale, dir + '/visualizations/lembox_defect_3.png')
+    plotShortscaleLemboxData(v[startTime:stopTime], t[startTime:stopTime], i[startTime:stopTime], ss_file)
     lemboxSpectrogram(v[startTime:stopTime], i[startTime:stopTime], dir)
 
-    print('Average Voltage: ' + str(np.mean(v[begin:end])))
-    print('Average Current: ' + str(np.mean(i[begin:end])))
+    shortscaleFFT(v[begin:end], i[begin:end], f, sample_rate)
+
+    #quickPlot((t[begin:begin+(20*70)], avgV[begin:begin+(20*70)]), (t[begin:begin+(20*70)], avgI[begin:begin+(20*70)]))
+
+    print('             Average Voltage: ' + str(np.mean(v[begin:end])))
+    print('             Average Current: ' + str(np.mean(i[begin:end])))
+    print()
+
+    for count in range(5):
+        plt.close()
+    getAvgStdDev(v[begin:end], i[begin:end], t[begin:end])
     
     return
 
@@ -286,6 +318,24 @@ def lemboxSpectrogram(v, i, d):
     plt.colorbar()
     ax.set_title('Current')
     plt.savefig(d + '/visualizations/Current_spectrogram.png')
+
+    return
+
+def getAvgStdDev(v, i, t, plot=False, n=20000):
+    v_roll = getRollingAvg(v, n)
+    i_roll = getRollingAvg(i, n)
+
+    print('             StdDev Voltage: ' + str(np.nanstd(v_roll)))
+    print('             StdDev Current: ' + str(np.nanstd(i_roll)))
+
+    if plot:
+        fig, ax = plt.subplots(1, 2, layout='constrained')
+        fig.set_size_inches(30,10)
+        ax[0].plot(t, v_roll)
+        ax[0].set_ylim([0, np.nanmax(v_roll) + 5])
+        ax[1].plot(t, i_roll)
+        ax[1].set_ylim([0, np.nanmax(i_roll) + 15])
+        plt.show()
 
     return
 

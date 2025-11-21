@@ -13,16 +13,16 @@ def readRSI(f, window = int(0.25*250), forceDataUpdate = False):
     print('         Reading RSI data...')
 
     df = pd.read_csv(f)
-    RSI_rate = int(len(df['RelativeTime'])/df['RelativeTime'][-1])
 
-    #possible_error_rates = [1000, 750, 500]
+    realStart = 0
+    for i, t in enumerate(df['RelativeTime'][1:], start=1):
+        if df['RelativeTime'][i] - df['RelativeTime'][i - 1] > 1: realStart = i
 
-    #for r in possible_error_rates:
-    #    cur_rate_time = df['RelativeTime'][int(len(df['RelativeTime'])/2) + RSI_rate] - df['RelativeTime'][int(len(df['RelativeTime'])/2)]
-    #    new_rate_time = df['RelativeTime'][int(len(df['RelativeTime'])/2) + r] - df['RelativeTime'][int(len(df['RelativeTime'])/2)]
+    if realStart != 0: 
+        df.drop(index=range(realStart), inplace=True)
+        df.reset_index(inplace=True)
 
-    #    if abs(new_rate_time - 1) < abs(cur_rate_time - 1):
-    #        RSI_rate = r
+    RSI_rate = int(len(df['RelativeTime'])/(df['RelativeTime'][df['RelativeTime'].index.tolist()[-1]] - df['RelativeTime'][df['RelativeTime'].index.tolist()[0]]))
     window = int(0.25*RSI_rate)
 
     pos_x = df['RIst_X']
@@ -37,7 +37,7 @@ def readRSI(f, window = int(0.25*250), forceDataUpdate = False):
         dfAddColumn(df, vel_mag, 'vel_mag')
 
         ti=  []
-        t = 0
+        t = df['RelativeTime'][0]
         r = 1/RSI_rate
         for c in range(len(vel_x)):
             ti.append(t)
@@ -54,7 +54,7 @@ def readRSI(f, window = int(0.25*250), forceDataUpdate = False):
         vel_mag = df['vel_mag']
         ti = df['Interpolated_Time(s)']
 
-    return (pos_x, pos_y, pos_z), (vel_x, vel_y, vel_z, vel_mag), ti
+    return (pos_x, pos_y, pos_z), (vel_x, vel_y, vel_z, vel_mag), ti, RSI_rate
 
 def getVelocities(x, y, z, w):
     vx = []
@@ -111,17 +111,18 @@ def plotPosValColormap(pos, val, val_id='', title='', cmin = 0, cmax = -1, spars
             val_sparse.append(val[i])
 
     px = 1/plt.rcParams['figure.dpi']
-    fig, ax = plt.subplots(subplot_kw={'projection': '3d'}, figsize=(1920*px,1080*px), constrained_layout=False)
-    scatter = ax.scatter(pos_sparse[0],pos_sparse[1],pos_sparse[2], c=val_sparse, cmap='inferno', vmin=cmin, vmax=cmax, s=25)
-    
-    #ax.set_zlim(190,196)
-    #ax.set_box_aspect(aspect=(np.nanmax(pos_sparse[0]) - np.nanmin(pos_sparse[0]), np.nanmax(pos_sparse[1]) - np.nanmin(pos_sparse[1]), np.nanmax(ax.get_zlim()) - np.nanmin(ax.get_zlim())))
-    ax.set_box_aspect(aspect=(np.nanmax(pos_sparse[0]) - np.nanmin(pos_sparse[0]), np.nanmax(pos_sparse[1]) - np.nanmin(pos_sparse[1]), np.nanmax(pos_sparse[2]) - np.nanmin(pos_sparse[2])))
+    fig, ax = plt.subplots(subplot_kw={'projection': '3d'}, figsize=(1920*px,1080*px))
+    scatter = ax.scatter(pos_sparse[0], pos_sparse[1], pos_sparse[2], c=val_sparse, cmap='inferno', vmin=cmin, vmax=cmax, s=((14/25.4)*72) ** 2)
+    scales = [np.nanmax(pos_sparse[0]) - np.nanmin(pos_sparse[0]), np.nanmax(pos_sparse[1]) - np.nanmin(pos_sparse[1]), np.nanmax(pos_sparse[2]) - np.nanmin(pos_sparse[2])]
+    for i, s in enumerate(scales):
+        if abs(s) < 0.1: scales[i] = 0.1
+
+    ax.set_box_aspect(aspect=(scales[0], scales[1], scales[2]))
     ax.disable_mouse_rotation()
 
     ax.set_xlabel('X (mm)', labelpad=25)
-    ax.set_ylabel('Y (mm)', labelpad=25)
-    ax.set_zlabel('Z (mm)')
+    ax.set_ylabel('Y (mm)')
+    ax.set_zlabel('Z (mm)', labelpad=-1)
 
     ax.locator_params(axis='y', nbins = 5)
     ax.locator_params(axis='z', nbins = 5)
@@ -133,8 +134,9 @@ def plotPosValColormap(pos, val, val_id='', title='', cmin = 0, cmax = -1, spars
     fig.colorbar(scatter, label=val_id, shrink=0.5)
     #fig.tight_layout()
 
-def plotMultiBeadColor(pos, val):
+def plotMultiBeadColor(pos, val, id, pt_sz = ((14/25.4)*72) ** 2):
 
+    '''
     min = np.nanmin(val)
     for i, v in enumerate(val):
         val[i] = v - min
@@ -143,13 +145,23 @@ def plotMultiBeadColor(pos, val):
     for i, v in enumerate(val):
         val[i] = v/max
 
+    '''
+
     fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
 
-    for p0, p1, p2, v in zip(pos[0], pos[1], pos[2], val):
-        ax.plot(p0,p1,p2, c=(v,0,0))
+    #for p0, p1, p2, v in zip(pos[0], pos[1], pos[2], val):
+        #ax.plot(p0,p1,p2, c=(v,0,0))
+
+    scatter = ax.scatter(pos[0], pos[1], pos[2], c=val, cmap='inferno', s=pt_sz)
 
     ax.set_box_aspect(aspect=(np.nanmax(pos[0]) - np.nanmin(pos[0]), np.nanmax(pos[1]) - np.nanmin(pos[1]), np.nanmax(pos[2]) - np.nanmin(pos[2])))
     ax.disable_mouse_rotation()
+
+    ax.set_xlabel('X (mm)', labelpad=25)
+    ax.set_ylabel('Y (mm)')
+    ax.set_zlabel('Z (mm)')
+    fig.colorbar(scatter, label=id, shrink=0.5)
+    fig.set_size_inches(18,10)
 
     return
 
