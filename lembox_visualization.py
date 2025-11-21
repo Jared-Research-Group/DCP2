@@ -219,7 +219,7 @@ def drawLemboxVis(f, **kwargs):
     else:
         n = 1000
 
-    t, i, v, avgI, avgV, globalStart = getLemboxData(f, n, False)
+    t, i, v, avgI, avgV = getLemboxData(f, n, False)
 
     t_scale = t[int(len(t)/2) + n] - t[int(len(t)/2)]        # compute time length of rolling average
     t_scale = f"{t_scale:.5f}"
