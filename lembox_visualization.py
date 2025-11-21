@@ -47,7 +47,7 @@ def getLemboxData(f, n = 1000, forceDataUpdate=False):
 
     return  time, df['Scaled_Current(A)'], df['Scaled_Voltage(V)'], avgI, avgV
 
-def drawStats(t, i, v, dir, scale=sample_rate):
+def drawStats(t, i, v, dir, startTime, stopTime, size, scale=sample_rate):
 
     if type(t) != list: t = t.tolist()
     if type(i) != list: i = i.tolist()
@@ -55,36 +55,42 @@ def drawStats(t, i, v, dir, scale=sample_rate):
 
     df = pd.read_csv(dir + '/lembox_data.csv')
     if dfHasColumn(df, 'StdDev_Current(A)'):
-        sd_i = df['StdDev_Current(A)']
-        sd_v = df['StdDev_Voltage(V)']
-        skew_i = df['Skew_Current']
-        skew_v = df['Skew_Voltage']
-        k_i = df['Kurtosis_Current']
-        k_v = df['Kurtosis_Voltage']
+        sd_i = df['StdDev_Current(A)'][startTime + scale - 1: stopTime]
+        sd_v = df['StdDev_Voltage(V)'][startTime + scale - 1: stopTime]
+        skew_i = df['Skew_Current'][startTime + scale - 1: stopTime]
+        skew_v = df['Skew_Voltage'][startTime + scale - 1: stopTime]
+        k_i = df['Kurtosis_Current'][startTime + scale - 1: stopTime]
+        k_v = df['Kurtosis_Voltage'][startTime + scale - 1: stopTime]
 
     else:
+        NaN_front = []
+        NaN_back  = []
+        for cnt in range(scale + startTime): NaN_front.append(float('NaN'))
+        for cnt in range(size - stopTime - 1): NaN_back.append(float('NaN'))
+            
+        
         print('             Getting Rolling StdDevs...')
         sd_i = getRollingStdDev(i, scale)
         sd_v = getRollingStdDev(v, scale)
 
-        #dfAddColumn(df, sd_i, 'StdDev_Current(A)')
-        #dfAddColumn(df, sd_v, 'StdDev_Voltage(V)')
+        dfAddColumn(df, NaN_front + sd_i + NaN_back, 'StdDev_Current(A)')
+        dfAddColumn(df, NaN_front + sd_v + NaN_back, 'StdDev_Voltage(V)')
 
         print('             Getting Rolling Skews...')
         skew_i = getRollingSkew(i, scale, sd_i)
         skew_v = getRollingSkew(v, scale, sd_v)
 
-        #dfAddColumn(df, skew_i, 'Skew_Current')
-        #dfAddColumn(df, skew_v, 'Skew_Voltage')
+        dfAddColumn(df, NaN_front + skew_i + NaN_back, 'Skew_Current')
+        dfAddColumn(df, NaN_front + skew_v + NaN_back, 'Skew_Voltage')
 
         print('             Getting Rolling Kurtosis...')
         k_i = getRollingKurtosis(i, scale, sd_i)
         k_v = getRollingKurtosis(v, scale, sd_v)
 
-        #dfAddColumn(df, k_i, 'Kurtosis_Current')
-        #dfAddColumn(df, k_v, 'Kurtosis_Voltage')
+        dfAddColumn(df, NaN_front + k_i + NaN_back, 'Kurtosis_Current')
+        dfAddColumn(df, NaN_front + k_v + NaN_back, 'Kurtosis_Voltage')
 
-        #dfToCsv(df, dir + '/lembox_data.csv')
+        dfToCsv(df, dir + '/lembox_data.csv')
 
     t = t[scale-1:]
     i = i[scale-1:]
@@ -95,14 +101,14 @@ def drawStats(t, i, v, dir, scale=sample_rate):
 
     fig, ax = plt.subplots(4,2, sharex=True)
 
-    for i, typ in enumerate(data):
+    for e, typ in enumerate(data):
         for j, d in enumerate(typ):
-            ax[j][i].scatter(t, d, s=0.005)
+            ax[j][e].scatter(t, d, s=0.005)
 
-            if j > 1: ax[j][i].set_ylim(bottom = -10, top=10)
+            if j > 1: ax[j][e].set_ylim(bottom = -10, top=10)
 
-        for j, l in enumerate(label[i]):
-            ax[j][i].set_ylabel(l)
+        for j, l in enumerate(label[e]):
+            ax[j][e].set_ylabel(l)
 
     
     for a in ax[-1]: a.set_xlabel('Time (s)')
@@ -110,9 +116,30 @@ def drawStats(t, i, v, dir, scale=sample_rate):
     fig.suptitle('Rolling Stats')
     #plt.show()
     plt.savefig(dir + '/visualizations/stats.png')
-
+    
+    sample_t = t[int(len(t)/2): int(len(t)/2) + scale]
+    sample_i = i[int(len(t)/2): int(len(t)/2) + scale]
+    sample_v = v[int(len(t)/2): int(len(t)/2) + scale]
+    
+    fig, ax = plt.subplots()
+    ax.hist2d(i, v, bins=100, norm='log')
+    fig.suptitle('Sample Statistical Distribution')
+    ax.set_xlabel('Current(A)')
+    ax.set_ylabel('Voltage(V)')
+    fig.set_size_inches(15,15)
+    plt.savefig(dir + '/visualizations/histogram2D.png')
+    
+    fig, ax = plt.subplots(1, 2)
+    ax[0].hist(i, bins=250)
+    ax[0].set_xlabel('Current(A)')
+    ax[1].hist(v, bins=250)
+    ax[1].set_xlabel('Voltage(V)')
+    
+    fig.suptitle('Sample Statistical Distribution')
+    fig.set_size_inches(30,10)
+    plt.savefig(dir + '/visualizations/histograms.png')
+    
     print('             Stats Complete!')
-
     return
 
 def plotLemboxData(v, t, i, avgV, avgI, t_scale, file):
