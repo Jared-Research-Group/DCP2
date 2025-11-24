@@ -32,16 +32,16 @@ def alignData(dir, forceDataUpdate=False):
         # collect required data from each datatype-specific program
 
         #interpolated lembox timestamps, raw current, raw voltage, rolling average current, rolling average voltage, global timestamp of data collection start
-        lem_time, curr, volt, avgI, avgV, lemGlobalStart = getLemboxData(dir + '/lembox_data.csv', 1000, forceDataUpdate)
+        lem_time, curr, volt, avgI, avgV = getLemboxData(dir + '/lembox_data.csv', 5000, forceDataUpdate)
         lem = [lem_time, curr, avgI, volt, avgV]
 
         # position data, calculated velocity data, interpolated rsi timestamps, global timestamp of data collection start, calculated RSI sample rate
-        pos, vel, rsi_time, rsiGlobalStart, rsiCalcSR = readRSI(dir + '/robot_data.csv', 1, forceDataUpdate)
+        pos, vel, rsi_time, rsiCalcSR = readRSI(dir + '/robot_data.csv', 1, forceDataUpdate)
         rsi = [rsi_time, pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], vel[3]]
         sample_rates['rsi'] = rsiCalcSR
 
         # interpolated mic timestamps, amplitude, global timestamp of data collection start
-        mic_t, mic_A, micGlobalStart = mic_time(dir + '/microphone_data.csv', dir + '/microphone_data_aligned.csv', sample_rate = 48000)
+        mic_t, mic_A = mic_time(dir + '/microphone_data.csv', dir + '/microphone_data_aligned.csv', sample_rate = 48000)
         mic = [mic_t, mic_A]
 
         '''
