@@ -40,9 +40,9 @@ window = 1000
 print(t[int(len(t)/2) + window] - t[int(len(t)/2)])
 
 for p in range(len(pos_x[window:])):
-    vel_x.append(pos_x[p+window] - pos_x[p])
-    vel_y.append(pos_y[p+window] - pos_y[p])
-    vel_z.append(pos_z[p+window] - pos_z[p])
+    vel_x.append((pos_x[p+window] - pos_x[p])/(t[p+window] - t[p]))
+    vel_y.append((pos_y[p+window] - pos_y[p])/(t[p+window] - t[p]))
+    vel_z.append((pos_z[p+window] - pos_z[p])/(t[p+window] - t[p]))
 
 fig2, ax2 = plt.subplots(3,1, sharex=True)
 ax2[0].scatter(t[window:], vel_x)
@@ -68,9 +68,9 @@ for i, scale in enumerate(scales):
     v_y.append([])
     v_z.append([])
     for p in range(len(pos_x[w:])):
-        v_x[-1].append(pos_x[p+w] - pos_x[p])
-        v_y[-1].append(pos_y[p+w] - pos_y[p])
-        v_z[-1].append(pos_z[p+w] - pos_z[p])
+        v_x[-1].append((pos_x[p+w] - pos_x[p])/(t[p+w] - t[p]))
+        v_y[-1].append((pos_y[p+w] - pos_y[p])/(t[p+w] - t[p]))
+        v_z[-1].append((pos_z[p+w] - pos_z[p])/(t[p+w] - t[p]))
 
     ax4[i].scatter(t[w:], v_y[-1])
     ax4[i].set_title(f'V_y - window: {scale}')

@@ -36,94 +36,13 @@ def alignData(dir, forceDataUpdate=False):
         lem = [lem_time, curr, avgI, volt, avgV]
 
         # position data, calculated velocity data, interpolated rsi timestamps, global timestamp of data collection start, calculated RSI sample rate
-        pos, vel, rsi_time, rsiCalcSR = readRSI(dir + '/robot_data.csv', 1, forceDataUpdate)
+        pos, vel, rsi_time, rsiCalcSR = readRSI(dir + '/robot_data.csv', 1000, forceDataUpdate)
         rsi = [rsi_time, pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], vel[3]]
         sample_rates['rsi'] = rsiCalcSR
 
         # interpolated mic timestamps, amplitude, global timestamp of data collection start
         mic_t, mic_A = mic_time(dir + '/microphone_data.csv', dir + '/microphone_data_aligned.csv', sample_rate = 48000)
         mic = [mic_t, mic_A]
-
-        '''
-
-        # get microsecond portion of global timestamps (not retrieved by time.mktime later)
-        lem_micro = float(lemGlobalStart[-10:-4])/math.pow(10,6)
-        rsi_micro = float(rsiGlobalStart[-6:])/math.pow(10,6)
-        mic_micro = float(micGlobalStart[-6:])/math.pow(10,6)
-
-        print(lemGlobalStart)
-        print(rsiGlobalStart)
-        print(micGlobalStart)
-
-        print(lem_micro)
-        print(rsi_micro)
-        print(mic_micro)
-
-        # get global timestamps in epoch time
-        lemGlobalStart = time.mktime(time.strptime(lemGlobalStart[:-11], '%Y-%m-%d %H:%M:%S')) - 18000              # timezone issue
-        rsiGlobalStart = time.mktime(time.strptime(rsiGlobalStart[:-7], '%Y-%m-%d %H:%M:%S'))
-        micGlobalStart = time.mktime(time.strptime(micGlobalStart[:-7], '%Y-%m-%d %H:%M:%S'))
-
-        # add microsecond portion to epoch time
-        lemGlobalStart += lem_micro
-        rsiGlobalStart += rsi_micro
-        micGlobalStart += mic_micro
-
-        # global_start_time == latest start time in collected data
-        global_start_time = max(lemGlobalStart, rsiGlobalStart, micGlobalStart)
-        startTimes = {'lembox':lemGlobalStart, 'rsi':rsiGlobalStart, 'mic':micGlobalStart}
-        offsets = {}
-
-        for k, t in startTimes.items():
-
-            # if the considered datatype started collecting before global_start_time, calculate the index in the considered datatype at which global_start_time is reached
-            if t < global_start_time:
-                offsets[k] = int((global_start_time - t) * sample_rates[k])
-            else:
-                offsets[k] = 0
-
-        print(offsets)
-
-        # for column in lem...
-        for i, l in enumerate(lem):
-            
-            # truncate column by [offset] values
-            lem[i] = l[offsets['lembox']:]
-            if type(lem[i]) == pd.Series: lem[i].reset_index(drop=True, inplace=True)       # pd.Series types need their indices updated so that the truncated Series starts from index 0
-
-        # later, we align data based on interpolated time. So, we need to make truncated interpolated times start from 0 again.
-        lemStart = lem[0][0]
-        print(lemStart)
-        for i, l in enumerate(lem[0]): 
-            lem[0][i] -= lemStart
-
-        # same logic for rsi, mic
-        for i, r in enumerate(rsi):
-            rsi[i] = r[offsets['rsi']:]
-            if type(rsi[i]) == pd.Series: rsi[i].reset_index(drop=True, inplace=True)
-
-        # rsi interpolated time is at the end of rsi, not beginning (why did i do this?)
-        rsiStart = rsi[-1][0]
-        print(rsiStart)
-        for i, r in enumerate(rsi[-1]): 
-            rsi[-1][i] -= rsiStart
-
-        for i, m in enumerate(mic):
-            mic[i] = m[offsets['mic']:]
-            if type(mic[i]) == pd.Series: mic[i].reset_index(drop=True, inplace=True)
-
-        micStart = mic[0][0]
-        print(micStart)
-        for i, m in enumerate(mic[0]): 
-            mic[0][i] -= micStart
-
-        print()
-        print(sample_rates['rsi'])
-        print(len(lem[0]))
-        print(len(rsi[0]))
-        print(len(mic[0]))
-
-        '''
 
         nonaligned_data = {'lembox':lem, 'rsi':rsi, 'mic':mic}
 

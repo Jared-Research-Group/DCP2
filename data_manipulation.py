@@ -218,7 +218,3 @@ def selectFolder():
     )
 
     return path
-
-#print(getRollingStdDev([500, 2, 100, 450, 600], 5))
-#print(getRollingSkew([500, 2, 100, 450, 600], 5))
-#print(getRollingKurtosis([500, 2, 100, 450, 600], 5))

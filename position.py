@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 plt.style.use('_mpl-gallery')
 #plt.rcParams['figure.tight_layout.use'] = True
 
-def readRSI(f, window = int(0.25*250), forceDataUpdate = False):
+def readRSI(f, window = 1000, forceDataUpdate = False):
     print('         Reading RSI data...')
 
     df = pd.read_csv(f)
@@ -30,18 +30,19 @@ def readRSI(f, window = int(0.25*250), forceDataUpdate = False):
     pos_z = df['RIst_Z']
 
     if not dfHasColumn(df, 'vel_x') or forceDataUpdate:
-        vel_x, vel_y, vel_z, vel_mag = getVelocities(pos_x, pos_y, pos_z, window)
+        
+        ti=  []
+        t = df['RelativeTime'][0]
+        r = 1/RSI_rate
+        for c in range(len(pos_x)):
+            ti.append(t)
+            t += r
+            
+        vel_x, vel_y, vel_z, vel_mag = getVelocities(pos_x, pos_y, pos_z, ti, window)
         dfAddColumn(df, vel_x, 'vel_x')
         dfAddColumn(df, vel_y, 'vel_y')
         dfAddColumn(df, vel_z, 'vel_z')
         dfAddColumn(df, vel_mag, 'vel_mag')
-
-        ti=  []
-        t = df['RelativeTime'][0]
-        r = 1/RSI_rate
-        for c in range(len(vel_x)):
-            ti.append(t)
-            t += r
 
         #print(ti[-1])
         dfAddColumn(df, ti, 'Interpolated_Time(s)')
@@ -56,7 +57,7 @@ def readRSI(f, window = int(0.25*250), forceDataUpdate = False):
 
     return (pos_x, pos_y, pos_z), (vel_x, vel_y, vel_z, vel_mag), ti, RSI_rate
 
-def getVelocities(x, y, z, w):
+def getVelocities(x, y, z, t, w):
     vx = []
     vy = []
     vz = []
@@ -69,9 +70,9 @@ def getVelocities(x, y, z, w):
         vm.append(float('NaN'))
 
     for p in range(len(x[w:])):
-        vx.append(x[p+w] - x[p])
-        vy.append(y[p+w] - y[p])
-        vz.append(z[p+w] - z[p])
+        vx.append((x[p+w] - x[p])/(t[p+w] - t[p]))
+        vy.append((y[p+w] - y[p])/(t[p+w] - t[p]))
+        vz.append((z[p+w] - z[p])/(t[p+w] - t[p]))
         vm.append(math.sqrt(math.pow(vx[-1], 2) + math.pow(vy[-1], 2) + math.pow(vz[-1], 2)))
 
     return vx, vy, vz, vm
