@@ -163,7 +163,7 @@ def getStartStop(testVal, testLimit = 1):
             break
 
     stopTime = 0
-    for t, v in enumerate(testVal):
+    for t, v in enumerate(testVal[1:]):                                     # changed this to [1:], keep an eye on this if issues arise
         if t < startTime:
             continue
 
