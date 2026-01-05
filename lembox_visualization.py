@@ -114,32 +114,32 @@ def drawStats(t, i, v, dir, startTime, stopTime, size, scale=sample_rate):
     for a in ax[-1]: a.set_xlabel('Time (s)')
     fig.set_size_inches(30,10)
     fig.suptitle('Rolling Stats')
-    #plt.show()
     plt.savefig(dir + '/visualizations/stats.png')
     
-    sample_t = t[int(len(t)/2): int(len(t)/2) + scale]
-    sample_i = i[int(len(t)/2): int(len(t)/2) + scale]
-    sample_v = v[int(len(t)/2): int(len(t)/2) + scale]
-    
+    print('             Stats Complete!')
+    return
+
+def plotHist(dir, v, i, t_start, f_prefix = ''):
+    if f_prefix:
+        if f_prefix[-1] != '_': f_prefix = f_prefix + '_'
+
     fig, ax = plt.subplots()
-    ax.hist2d(i, v, bins=100, norm='log')
-    fig.suptitle('Sample Statistical Distribution')
-    ax.set_xlabel('Current(A)')
-    ax.set_ylabel('Voltage(V)')
+    ax.hist2d(v, i, bins=250, norm='log')
+    fig.suptitle('Sample Statistical Distribution (' + str(len(v)) + ' data points starting from ' +str(t_start) +'s)')
+    ax.set_xlabel('Voltage(V)')
+    ax.set_ylabel('Current(A)')
     fig.set_size_inches(15,15)
-    plt.savefig(dir + '/visualizations/histogram2D.png')
+    plt.savefig(dir + '/visualizations/' + f_prefix + 'histogram2D.png')
     
     fig, ax = plt.subplots(1, 2)
     ax[0].hist(i, bins=250)
     ax[0].set_xlabel('Current(A)')
-    ax[1].hist(v, bins=250)
+    ax[1].hist(i, bins=250)
     ax[1].set_xlabel('Voltage(V)')
     
-    fig.suptitle('Sample Statistical Distribution')
+    fig.suptitle('Sample Statistical Distribution (' + str(len(v)) + ' data points starting from ' +str(t_start) +'s)')
     fig.set_size_inches(30,10)
-    plt.savefig(dir + '/visualizations/histograms.png')
-    
-    print('             Stats Complete!')
+    plt.savefig(dir + '/visualizations/' + f_prefix + 'histograms.png')
     return
 
 def plotLemboxData(v, t, i, avgV, avgI, t_scale, file):
@@ -244,15 +244,17 @@ def drawLemboxVis(f, **kwargs):
     mpl.rcParams['lines.markersize'] = pt_sz*2
     mpl.rcParams['figure.constrained_layout.use'] = True
 
-    begin = startTime + int(7* sample_rate)
+    begin = startTime + int(5* sample_rate)
     end = stopTime - int(5 * sample_rate)
 
-    #drawStats(t[startTime:stopTime], i[startTime:stopTime], v[startTime:stopTime], dir, 20000)
+    #drawStats(t[startTime:stopTime], i[startTime:stopTime], v[startTime:stopTime], dir, startTime, stopTime, len(t), 20000)
     plotLemboxData(v[startTime:stopTime], t[startTime:stopTime], i[startTime:stopTime], avgV[startTime:stopTime], avgI[startTime:stopTime], t_scale, file)
+    plotHist(dir, v[begin:end], i[begin:end], t[begin])
+    plotHist(dir, v[begin + int(5*sample_rate):begin + int(6*sample_rate)], i[begin + int(5*sample_rate):begin + int(6*sample_rate)], t[begin + int(5*sample_rate)], 'shortscale')
     mpl.rcParams['lines.markersize'] = 0.5
-    plotLemboxData(v[int(22.5*20000):int(32.5*20000)], t[int(22.5*20000):int(32.5*20000)], i[int(22.5*20000):int(32.5*20000)], avgV[int(22.5*20000):int(32.5*20000)], avgI[int(22.5*20000):int(32.5*20000)], t_scale, dir + '/visualizations/lembox_defect.png')
-    plotLemboxData(v[int(22.5*20000):int(30*20000)], t[int(22.5*20000):int(30*20000)], i[int(22.5*20000):int(30*20000)], avgV[int(22.5*20000):int(30*20000)], avgI[int(22.5*20000):int(30*20000)], t_scale, dir + '/visualizations/lembox_defect_2.png')
-    plotLemboxData(v[int(30*20000):int(32.5*20000)], t[int(30*20000):int(32.5*20000)], i[int(30*20000):int(32.5*20000)], avgV[int(30*20000):int(32.5*20000)], avgI[int(30*20000):int(32.5*20000)], t_scale, dir + '/visualizations/lembox_defect_3.png')
+    #plotLemboxData(v[int(22.5*20000):int(32.5*20000)], t[int(22.5*20000):int(32.5*20000)], i[int(22.5*20000):int(32.5*20000)], avgV[int(22.5*20000):int(32.5*20000)], avgI[int(22.5*20000):int(32.5*20000)], t_scale, dir + '/visualizations/lembox_defect.png')
+    #plotLemboxData(v[int(22.5*20000):int(30*20000)], t[int(22.5*20000):int(30*20000)], i[int(22.5*20000):int(30*20000)], avgV[int(22.5*20000):int(30*20000)], avgI[int(22.5*20000):int(30*20000)], t_scale, dir + '/visualizations/lembox_defect_2.png')
+    #plotLemboxData(v[int(30*20000):int(32.5*20000)], t[int(30*20000):int(32.5*20000)], i[int(30*20000):int(32.5*20000)], avgV[int(30*20000):int(32.5*20000)], avgI[int(30*20000):int(32.5*20000)], t_scale, dir + '/visualizations/lembox_defect_3.png')
     plotShortscaleLemboxData(v[startTime:stopTime], t[startTime:stopTime], i[startTime:stopTime], ss_file)
     lemboxSpectrogram(v[startTime:stopTime], i[startTime:stopTime], dir)
 
