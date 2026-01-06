@@ -22,14 +22,13 @@ def getHotFrame(dir):
 
     return hotFrame.item()['frame']
 
-def getPixel(dir):
+def getPixels(dir, numPts=1):
 
     frame = getHotFrame(dir)
 
-    pos = [0, 0]
+    pos = []
     def onclick(event):
-        pos[0] = event.xdata
-        pos[1] = event.ydata
+        pos.append([event.xdata, event.ydata])
         return
 
     fig = plt.imshow(frame)
@@ -40,7 +39,9 @@ def getPixel(dir):
 
     fig.canvas.mpl_disconnect(cid)
 
-    return (int(pos[0]), int(pos[1]))
+    if len(pos) < numPts: return
+
+    return pos[-1 * numPts:]
 
 def getFrameData(pix, dir):
 
@@ -133,7 +134,7 @@ def main():
     dir = selectFolder()
     dir += '/FLIR'
 
-    pixel = getPixel(dir)
+    pixel = getPixels(dir, 1)
 
     print(pixel)
 

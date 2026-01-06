@@ -218,3 +218,15 @@ def selectFolder():
     )
 
     return path
+
+def printProgressBar(index, len, ticks=100):
+        if ticks > len: ticks = int(len/10)
+        
+        if index % int(len/ticks) == 0:
+            prog_str = '\r['
+            for prog in range(int(index / int(len/ticks)) + 1):
+                prog_str += '='
+            for prog in range(int(ticks - (index / int(len/ticks)) - 1)):
+                prog_str += ' '
+            prog_str += ']'
+            sys.stdout.write(prog_str)
