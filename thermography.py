@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import matplotlib.colors as colors
+import matplotlib.cm     as cm
 from functools import partial
 import numpy as np
 import pandas as pd
@@ -28,7 +30,7 @@ def getPixels(dir, numPts=1):
 
     pos = []
     def onclick(event):
-        pos.append([event.xdata, event.ydata])
+        pos.append([int(event.xdata), int(event.ydata)])
         return
 
     fig = plt.imshow(frame)
@@ -46,46 +48,52 @@ def getPixels(dir, numPts=1):
 def getFrameData(pix, dir):
 
     pixelIntensity = []
-    frameIntensity = []
+    framePaths = []
     times     = []
     def getPixelIntensityTrend(e):
         frame = np.load(e.path, allow_pickle=True)
         pixelIntensity.append(frame.item()['frame'][pix[1]][pix[0]]/ (math.pow(2,16) - 1))
-        frameIntensity.append(frame.item()['frame'] / (math.pow(2,16) - 1))
+        framePaths.append(e.path)
         times.append(frame.item()['timestamp'])
         return
     
     dataSearch(dir, getPixelIntensityTrend, False, 'FLIR-Frame')
 
-    
+    startTime = time.mktime(time.strptime(times[0][:-4], '%Y-%m-%d %H:%M:%S'))
+    startTime += float(times[0][-3:])/math.pow(10,3)
+
     for i, t in enumerate(times):
         t_micro = float(t[-3:])/math.pow(10,3)
         t = time.mktime(time.strptime(t[:-4], '%Y-%m-%d %H:%M:%S'))
         t += t_micro
 
+        if t < startTime: startTime = t
+
         times[i] = t
 
-    df = pd.DataFrame(data={'timestamps':times, 'i_pix':pixelIntensity, 'i_frame':frameIntensity})
+    for i, t in enumerate(times):
+        times[i] = t - startTime
+
+    df = pd.DataFrame(data={'timestamps':times, 'i_pix':pixelIntensity, 'frame_paths':framePaths})
     df.sort_values(by=['timestamps'], inplace=True)
 
-    return [df['timestamps'].to_list(), df['i_pix'].to_list(), df['i_frame'].tolist()]
+    return [df['timestamps'].to_list(), df['i_pix'].to_list(), df['frame_paths'].to_list()]
 
 def drawTimeAnimation(data, pix, dir):
     
     # modify getFrameData to pull full frames as well as selected pixel intensities. sort frames, intensities. drawNextFrame should be counting current frame count, then windowing intensity/timestamp to match framecount
-    fig, ax = plt.subplots(2,1)
-    step = 10
+    fig, ax = plt.subplots(1, 2, layout='constrained')
+    ax[1].set_xlim([data[0][0], data[0][-1]])
+    ax[1].set_ylim([0, 1.05])
+    ax[0].axis('off')
+    fig.colorbar(cm.ScalarMappable(norm=colors.Normalize(vmin=0, vmax=1), cmap='viridis'), ax=ax[0])
 
-    def initFrame():
-        fig.suptitle('Temperature at Point')
+    asp = (np.diff(ax[1].get_xlim())[0] / np.diff(ax[1].get_ylim())[0]) * (348/464)
+    ax[1].set_aspect(asp)
+    ax[1].set_xlabel('Time (s)')
+    ax[1].set_ylabel('Scaled Pixel Intensity')
 
-        ax[1].set_ylim([min(data[1]), max(data[1]) + 0.1])
-        ax[1].set_xlim([min(data[0]) -10, max(data[0]) + 10])
-
-        frame = []
-        frame.append(ax[0].imshow(T_frame, vmin=0, vmax=1))
-        frame.append(ax[1].scatter(t, T_pix, s=0.25, c='#036ffc'))
-        return frame
+    step = 50
 
     def drawNextFrame(fc, dat):
 
@@ -93,40 +101,35 @@ def drawTimeAnimation(data, pix, dir):
 
         t = dat[0][:fc]
         T_pix = dat[1][:fc]
-        T_frame = dat[2][fc]
+        T_frame = np.load(dat[2][fc], allow_pickle=True)
 
-        frame = []
-        frame.append(ax[0].imshow(T_frame, vmin=0, vmax=1))
-        frame.append(ax[1].scatter(t, T_pix, s=0.25, c='#036ffc'))
-        return frame
+        T_frame = T_frame.item()['frame'] / float(math.pow(2,16) - 1)
+
+        if ((fc-1)/step) % 2 == 0:
+            T_frame[pix[1]][pix[0]] = 0
+            T_frame[pix[1] + 1][pix[0]] = 0
+            T_frame[pix[1] - 1][pix[0]] = 0
+            T_frame[pix[1]][pix[0] + 1] = 0
+            T_frame[pix[1]][pix[0] - 1] = 0
+
+        else:
+            T_frame[pix[1]][pix[0]] = 1
+            T_frame[pix[1] + 1][pix[0]] = 1
+            T_frame[pix[1] - 1][pix[0]] = 1
+            T_frame[pix[1]][pix[0] + 1] = 1
+            T_frame[pix[1]][pix[0] - 1] = 1
+
+        ax[0].imshow(T_frame, vmin=0, vmax=1, cmap='viridis')
+        ax[1].scatter(t, T_pix, s=0.00005, c='#036ffc')
+        return
     
     frame_count = []
     for f in range(1, len(data[0]), step):
         frame_count.append(f)
 
-    for i, f in enumerate(frame_count):
-        if ((f-1)/step) % 2 == 0:
-            data[2][f][pix[1]][pix[0]] = 0
-            data[2][f][pix[1] + 1][pix[0]] = 0
-            data[2][f][pix[1] - 1][pix[0]] = 0
-            data[2][f][pix[1]][pix[0] + 1] = 0
-            data[2][f][pix[1]][pix[0] - 1] = 0
-
-        else:
-            data[2][f][pix[1]][pix[0]] = 1
-            data[2][f][pix[1] + 1][pix[0]] = 1
-            data[2][f][pix[1] - 1][pix[0]] = 1
-            data[2][f][pix[1]][pix[0] + 1] = 1
-            data[2][f][pix[1]][pix[0] - 1] = 1
-
-    t = data[0][0]
-    T_pix = data[1][0]
-    T_frame = data[2][0]
-
-
     # make animation with flir frames in 1 region of subplot, updating intensity values in another region
-    ani = FuncAnimation(fig, partial(drawNextFrame, dat=data), frames=frame_count, init_func=initFrame, blit=True)
-    ani.save(os.path.split(dir)[0] + '/visualizations/thermal.mp4', fps=int(15/step))
+    ani = FuncAnimation(fig, partial(drawNextFrame, dat=data), frames=frame_count)
+    ani.save(os.path.split(dir)[0] + '/visualizations/thermal.mp4', fps=10)
 
     return
 
@@ -136,7 +139,7 @@ def main():
 
     pixel = getPixels(dir, 1)
 
-    print(pixel)
+    pixel = pixel[0]
 
     df = getFrameData(pixel, dir)
 
