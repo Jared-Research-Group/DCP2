@@ -3,12 +3,13 @@ import pandas as pd
 import time
 import math
 import os
+import sys
 from data_manipulation import selectFolder
 from batch_process     import dataSearch
 
-def getThermocoupleData(d):
+def getThermocoupleData(d, filename='thermocouple_data.csv'):
 
-    df = pd.read_csv(d + '/thermocouple_data.csv', encoding='cp1252')
+    df = pd.read_csv(d + '/' + filename, encoding='cp1252')
 
     return df
 
@@ -23,20 +24,27 @@ def plotThermocouple(df):
 
         timestamps.append(timestamp)
 
+    
+    startTime = timestamps[0]
+
+    for i, t in enumerate(timestamps):
+        timestamps[i] = t - startTime
 
     temp = []
     for i in range(4):
         channel = 'Channel ' + str(i) + ' (°C)'
         temp.append(df[channel])
 
-    fig, ax = plt.subplots(2,2, layout='constrained', sharex=True)
+    fig, ax = plt.subplots(layout='constrained')
 
-    for i in range(2):
-        for j in range(2):
-            ax[i][j].scatter(timestamps, temp[i*2 + j], s=2)
-            ax[i][j].set_ylabel('Temperature (°C)')
-            ax[i][j].set_title('Channel ' + str(i*2 + j))
-        ax[1][i].set_xlabel('Time (s)')
+    colors = ['#0d6cbf', '#9d16db','#db2a16', '#16db19']
+
+    for i in range(4):
+        ax.scatter(timestamps, temp[i], s=2, c=colors[i], label='Channel ' + str(i))
+
+    ax.set_ylabel('Temperature (°C)')
+    ax.set_xlabel('Time (s)')
+    ax.legend(markerscale=3)
 
     plt.show()
 
@@ -44,25 +52,33 @@ def plotThermocouple(df):
     return
 
 def main():
-    dir = selectFolder()
 
-    if os.path.split(dir)[1].startswith('data_collection'):
-        d = getThermocoupleData(dir)
+    if len(sys.argv) == 3:
+        dir = sys.argv[1]
+        fname = sys.argv[2]
+
+        d = getThermocoupleData(dir, fname)
         plotThermocouple(d)
-        return
-    
-    dat = []
-    def dataCallback(e):
-        d = getThermocoupleData(e.path)
-        dat.append(d)
-        return
+    else:
+        dir = selectFolder()
 
-    dataSearch(dir, dataCallback, printFlag=False)
-    df = dat.pop()
-    while dat:
-        df = pd.concat([dat.pop(), df], ignore_index=True)
+        if os.path.split(dir)[1].startswith('data_collection'):
+            d = getThermocoupleData(dir)
+            plotThermocouple(d)
+            return
+        
+        dat = []
+        def dataCallback(e):
+            d = getThermocoupleData(e.path)
+            dat.append(d)
+            return
 
-    plotThermocouple(df)
+        dataSearch(dir, dataCallback, printFlag=False)
+        df = dat.pop()
+        while dat:
+            df = pd.concat([dat.pop(), df], ignore_index=True)
+
+        plotThermocouple(df)
 
     return
 

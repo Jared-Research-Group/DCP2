@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.colors as colors
 import matplotlib.cm     as cm
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from functools import partial
 import numpy as np
 import pandas as pd
@@ -86,14 +87,17 @@ def drawTimeAnimation(data, pix, dir):
     ax[1].set_xlim([data[0][0], data[0][-1]])
     ax[1].set_ylim([0, 1.05])
     ax[0].axis('off')
-    fig.colorbar(cm.ScalarMappable(norm=colors.Normalize(vmin=0, vmax=1), cmap='viridis'), ax=ax[0])
+
+    axins = inset_axes(ax[0], width="5%", height="50%", loc='upper right')
+    #axins.yaxis.set_label_position('left')
+    fig.colorbar(cm.ScalarMappable(norm=colors.Normalize(vmin=0, vmax=1), cmap='viridis'), cax=axins, ticks=[0, 1], ticklocation='left')
 
     asp = (np.diff(ax[1].get_xlim())[0] / np.diff(ax[1].get_ylim())[0]) * (348/464)
     ax[1].set_aspect(asp)
     ax[1].set_xlabel('Time (s)')
     ax[1].set_ylabel('Scaled Pixel Intensity')
 
-    step = 50
+    step = 500
 
     def drawNextFrame(fc, dat):
 
@@ -112,15 +116,26 @@ def drawTimeAnimation(data, pix, dir):
             T_frame[pix[1]][pix[0] + 1] = 0
             T_frame[pix[1]][pix[0] - 1] = 0
 
-        else:
+        #else:
+        if True:
             T_frame[pix[1]][pix[0]] = 1
             T_frame[pix[1] + 1][pix[0]] = 1
             T_frame[pix[1] - 1][pix[0]] = 1
             T_frame[pix[1]][pix[0] + 1] = 1
             T_frame[pix[1]][pix[0] - 1] = 1
 
+            T_frame[pix[1] + 2][pix[0]] = 1
+            T_frame[pix[1] - 2][pix[0]] = 1
+            T_frame[pix[1]][pix[0] + 2] = 1
+            T_frame[pix[1]][pix[0] - 2] = 1
+
+            T_frame[pix[1] + 1][pix[0] + 1] = 1
+            T_frame[pix[1] + 1][pix[0] - 1] = 1
+            T_frame[pix[1] - 1][pix[0] + 1] = 1
+            T_frame[pix[1] - 1][pix[0] - 1] = 1
+
         ax[0].imshow(T_frame, vmin=0, vmax=1, cmap='viridis')
-        ax[1].scatter(t, T_pix, s=0.00005, c='#036ffc')
+        ax[1].scatter(t, T_pix, s=0.000005, c='#036ffc')
         return
     
     frame_count = []
@@ -133,6 +148,14 @@ def drawTimeAnimation(data, pix, dir):
 
     return
 
+def drawTimeSeriesPixelScatter(data, pix, dir):
+    fig, ax = plt.subplots(layout='constrained')
+    ax.set_xlim([data[0][0], data[0][-1]])
+    ax.set_ylim([0, 1.05])
+
+    ax.scatter(data[0], data[1])
+    plt.savefig(os.path.split(dir)[0] + '/visualizations/pixel.png')
+
 def main():
     dir = selectFolder()
     dir += '/FLIR'
@@ -143,7 +166,8 @@ def main():
 
     df = getFrameData(pixel, dir)
 
-    drawTimeAnimation(df, pixel, dir)
+    #drawTimeAnimation(df, pixel, dir)
+    drawTimeSeriesPixelScatter(df, pixel, dir)
 
     return
 
