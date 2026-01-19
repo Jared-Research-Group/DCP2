@@ -173,7 +173,7 @@ def main():
     else:
         input_file = sys.argv[1]
 
-    pos, vel = readRSI(input_file, True)
+    pos, vel, ti, rsi_rate = readRSI(input_file, True)
     plotPos(pos)
 
 if __name__ == '__main__': main()
