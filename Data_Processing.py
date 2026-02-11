@@ -22,9 +22,9 @@ def process_data_folder(folder_path):
     
     # Dictionary mapping file patterns to their processing scripts
     processing_rules = {
-        'microphone_data.csv': 'audio_conversion.py',
-        'robot_data.txt': 'robotdata_parsing.py',
-        'lembox_data.csv': 'lembox_scaling.py'
+        'microphone_data.csv': 'core_scripts/audio_conversion.py',
+        'robot_data.txt': 'core_scripts/robotdata_parsing.py',
+        'lembox_data.csv': 'core_scripts/lembox_scaling.py'
     }
     
     # Process regular files
@@ -42,20 +42,20 @@ def process_data_folder(folder_path):
                 
                 print(f"\nProcessing {file_path} with {script_name}")
                 try:
-                    if script_name == 'robotdata_parsing.py':
+                    if script_name == 'core_scripts/robotdata_parsing.py':
                         # Special handling for robot data to specify output path
                         output_path = file_path.with_suffix('.csv')
                         subprocess.run([sys.executable, str(script_path), 
                                      str(file_path), str(output_path)], check=True)
-                    elif script_name == 'audio_conversion.py':
+                    elif script_name == 'core_scripts/audio_conversion.py':
                         subprocess.run([sys.executable, str(script_path), 
                                      str(file_path)], check=True)
-                        subprocess.run([sys.executable, str(script_dir / 'audio_visualization.py'),
+                        subprocess.run([sys.executable, str(script_dir / 'core_scripts/audio_visualization.py'),
                                         str(folder / 'microphone_data.wav')], check=True)
-                    elif script_name == 'lembox_scaling.py':
+                    elif script_name == 'core_scripts/lembox_scaling.py':
                         subprocess.run([sys.executable, str(script_path),
                                          str(file_path)], check=True)
-                        subprocess.run([sys.executable, str(script_dir / 'lembox_visualization.py'),
+                        subprocess.run([sys.executable, str(script_dir / 'core_scripts/lembox.py'),
                                          str(file_path)], check=True)
                     else:
                         subprocess.run([sys.executable, str(script_path), 
@@ -73,7 +73,7 @@ def process_data_folder(folder_path):
     # Check for FLIR folder
     flir_folder = folder / 'FLIR'
     if flir_folder.is_dir():
-        flir_script = script_dir / 'create_flirvideo.py'
+        flir_script = script_dir / 'core_scripts/create_flirvideo.py'
         if not flir_script.exists():
             print(f"FLIR processing script not found: {flir_script}")
             return

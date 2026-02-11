@@ -1,4 +1,4 @@
-from lembox_visualization import getLemboxData, getTimeData
+from core_scripts.lembox import getLemboxData, getTimeData
 import matplotlib.pyplot as plt
 import sys
 import os

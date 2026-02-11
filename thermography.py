@@ -10,7 +10,7 @@ import os
 import math
 import time
 
-from data_manipulation import selectFolder
+from core_scripts.data_manipulation import selectFolder
 from batch_process import dataSearch
 
 def getHotFrame(dir):

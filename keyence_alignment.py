@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from data_manipulation import getStartStop, dfToCsv
+from core_scripts.data_manipulation import getStartStop, dfToCsv
 
 def readKeyenceData(filename, stop_height):
     df = pd.read_csv(filename)
@@ -64,7 +64,7 @@ def alignProfileData():
     dfToCsv(bead, "F:/410SS DATA/profile_datasets/bead4.csv")
 
 def drawVis():
-    bead = pd.read_csv("F:/410SS DATA/profile_datasets/bead3.csv")
+    bead = pd.read_csv("F:/410SS DATA/profile_datasets/bead1.csv")
     
     fig1, ax1 = plt.subplots(2,1, layout='constrained')
     ax1[0].scatter(bead['profile_z(mm)'], bead['Avg_Voltage(V)'], s=0.000005)

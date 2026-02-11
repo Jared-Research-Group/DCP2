@@ -5,8 +5,8 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-from audio_conversion import csv_to_wav
-from create_flirvideo import (
+from core_scripts.audio_conversion import csv_to_wav
+from core_scripts.create_flirvideo import (
     convert_to_8bit,
     apply_inverted_colormap,
     add_vertical_color_scale_bar,

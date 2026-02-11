@@ -1,10 +1,10 @@
 import pandas as pd
 import sys
 from tkinter import filedialog
-from lembox_visualization import getLemboxData
-from position import readRSI, plotPosValColormap, plotPos
+from core_scripts.lembox import getLemboxData
+from core_scripts.position import readRSI, plotPosValColormap, plotPos
 from audio_time_scale import mic_time
-from data_manipulation import dfToCsv, getStartStop, dfHasColumn, getRollingAvg, quickPlot
+from core_scripts.data_manipulation import dfToCsv, getStartStop, dfHasColumn, getRollingAvg, quickPlot
 import os
 import matplotlib.pyplot as plt
 import numpy as np

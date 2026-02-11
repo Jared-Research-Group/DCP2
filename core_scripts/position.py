@@ -3,7 +3,7 @@ import math
 from tkinter import filedialog
 import pandas as pd
 import numpy as np
-from data_manipulation import dfHasColumn, dfAddColumn, dfToCsv
+from core_scripts.data_manipulation import dfHasColumn, dfAddColumn, dfToCsv
 import matplotlib.pyplot as plt
 
 plt.style.use('_mpl-gallery')

@@ -1,10 +1,8 @@
 import os
 import sys
 import subprocess
-import tkinter as tk
-from tkinter import filedialog
 
-from data_manipulation import selectFolder
+from core_scripts.data_manipulation import selectFolder
 
 def dataSearch(f, func, printFlag=True, id='data_collection_', id_atFront=True):
     found_entities = []

@@ -4,7 +4,7 @@ import numpy  as np
 import matplotlib.pyplot as plt
 import math
 
-from data_manipulation import selectFolder, getRollingAvg, dfAddColumn, dfToCsv
+from core_scripts.data_manipulation import selectFolder, getRollingAvg, dfAddColumn, dfToCsv
 from synchronized_data import alignData
 
 plt.rcParams['lines.markersize'] = 0.005

@@ -9,7 +9,7 @@ from tkinter             import filedialog
 import subprocess
 from pathlib import Path
 
-from data_manipulation import getRollingAvg, getRollingStdDev, getRollingSkew, getRollingKurtosis, getStartStop, dfHasColumn, dfAddColumn, dfToCsv, quickPlot
+from core_scripts.data_manipulation import getRollingAvg, getRollingStdDev, getRollingSkew, getRollingKurtosis, getStartStop, dfHasColumn, dfAddColumn, dfToCsv, quickPlot
 
 sample_rate = 20000 #hz
 

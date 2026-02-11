@@ -4,18 +4,21 @@ import time
 import math
 import os
 import sys
-from data_manipulation import selectFolder
+from core_scripts.data_manipulation import selectFolder
 from batch_process     import dataSearch
 
+# read raw thermocouple data *.csv as pandas DataFrame
 def getThermocoupleData(d, filename='thermocouple_data.csv'):
 
-    df = pd.read_csv(d + '/' + filename, encoding='cp1252')
+    df = pd.read_csv(d + '/' + filename, encoding='cp1252')         # weird specific encoding required for successful read
 
     return df
 
+# plot all 4 thermocouple channels as overlayed series in single axis
 def plotThermocouple(df):
     t = df['Timestamp']
 
+    # build floats representing epoch time in seconds from timestamp text in df
     timestamps = []
     for i, timestamp in enumerate(t):
         timestamp_micro = float(timestamp[-6:])/math.pow(10,6)
@@ -24,12 +27,12 @@ def plotThermocouple(df):
 
         timestamps.append(timestamp)
 
-    
+    # convert from epoch time to time since recording started
     startTime = timestamps[0]
-
     for i, t in enumerate(timestamps):
         timestamps[i] = t - startTime
 
+    # pick out data from 
     temp = []
     for i in range(4):
         channel = 'Channel ' + str(i) + ' (°C)'

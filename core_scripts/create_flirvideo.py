@@ -120,6 +120,7 @@ def npy_to_video(input_folder, output_file, output_frames_folder, fps=10, width=
             colored_image = apply_inverted_colormap(image_8bit)
             resized_image = cv2.resize(colored_image, (width, height))
             
+            # need to compute ends of scale bar correctly. what are the max and min values of a frame/video?
             image_with_scale_bar = add_vertical_color_scale_bar(resized_image, width, height, global_min, global_max)
             final_image = add_timestamp(image_with_scale_bar, timestamp, width, height)
             

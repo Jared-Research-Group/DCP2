@@ -1,6 +1,6 @@
 from batch_process import dataSearch
-from data_manipulation import selectFolder, getStartStop
-from position import plotMultiBeadColor
+from core_scripts.data_manipulation import selectFolder, getStartStop
+from core_scripts.position import plotMultiBeadColor
 import matplotlib.pyplot as plt
 import pandas as pd
 import math

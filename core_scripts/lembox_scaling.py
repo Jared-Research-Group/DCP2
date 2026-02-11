@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import sys
 import numpy as np
-from data_manipulation import csvHasColumn, dfToCsv
+from core_scripts.data_manipulation import csvHasColumn
 
 # Get the directory where the script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -30,27 +30,11 @@ try:
             numCommas = line.count(',')
             invalidCommas = numCommas != 6 and numCommas != 8 and numCommas != 11
             if 'Sample' in line or invalidCommas:
-                #print('line' + str(i))
-                #print(line)
                 rm.append(i + 1)
-
-        #print(r[-5:])
-        #print()
 
         rm.sort(reverse=True)
         for i in rm:
-
-            
-            #print(i - len(r))
-            #print(r[i])
-
             r.pop(i)
-            #if i + 1 <= len(r): r.pop(i + 1)
-            #if i < len(r): r.pop(i)
-            #if i - 1 < len(r): r.pop(i - 1)           #'Sample' string injection should not interrupt lines before first sighting of 'Sample' ?
-
-        #print()
-        #print(r[-5:])
 
     with open(input_file, 'w') as f:
         f.writelines(r)
@@ -58,29 +42,6 @@ try:
 except FileNotFoundError:
     print(f'{input_file} does not exist.')
     sys.exit(1)
-
-    '''
-
-df = pd.read_csv(input_file)
-bad_rows = []
-for i in range(len(df['Sample'])):
-    try:
-        int(df['Sample'])
-        float(df['PerfTime(s)'])
-        str(df['Timestamp'])
-        str(df['VoltageRaw'])
-        float(df['Voltage(V)'])
-        str(df['CurrentRaw'])
-        float(df['Current(A)'])
-    except:
-        bad_rows.append(i)
-
-bad_rows.sort(reverse=True)
-for r in bad_rows:
-    df.drop(r)
-
-dfToCsv(df, input_file)
-'''
 
 # added explicit dtype definitions to prevent dtypeWarning message. skipfooter avoids type error caused by debugging messages appended
 # to data. python engine is required to use the skipfooter option.
