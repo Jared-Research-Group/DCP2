@@ -56,6 +56,9 @@ def getFrameData(pix, dir):
         pixelIntensity.append(frame.item()['frame'][pix[1]][pix[0]]/ (math.pow(2,16) - 1))
         framePaths.append(e.path)
         times.append(frame.item()['timestamp'])
+        
+        if len(pixelIntensity)%1000 == 0:
+            print(len(pixelIntensity))
         return
     
     dataSearch(dir, getPixelIntensityTrend, False, 'FLIR-Frame')
@@ -154,7 +157,7 @@ def drawTimeSeriesPixelScatter(data, pix, dir):
     ax.set_ylim([0, 1.05])
 
     ax.scatter(data[0], data[1])
-    plt.savefig(os.path.split(dir)[0] + '/visualizations/pixel.png')
+    plt.savefig(os.path.split(dir)[0] + '/visualizations/pixel.png', s=0.5)
 
 def main():
     dir = selectFolder()
