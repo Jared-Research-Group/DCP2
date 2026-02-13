@@ -9,7 +9,7 @@ from tkinter             import filedialog
 import subprocess
 from pathlib import Path
 
-from core_scripts.data_manipulation import getRollingAvg, getRollingStdDev, getRollingSkew, getRollingKurtosis, getStartStop, dfHasColumn, dfAddColumn, dfToCsv, quickPlot
+from data_manipulation import getRollingAvg, getRollingStdDev, getRollingSkew, getRollingKurtosis, getStartStop, dfHasColumn, dfAddColumn, dfToCsv, quickPlot
 
 sample_rate = 20000 #hz
 
@@ -168,7 +168,14 @@ def plotLemboxData(v, t, i, avgV, avgI, t_scale, file):
 
         return
 
-def plotShortscaleLemboxData(v, t, i, file, n=25, p_start=20000*5, p_stop=20000*7):
+def plotShortscaleLemboxData(v, t, i, file, n=25, p_start=None, p_stop=None):
+        t.reset_index(inplace=True, drop=True)
+        v.reset_index(inplace=True, drop=True)
+        i.reset_index(inplace=True, drop=True)
+
+        if not p_start: p_start=int(len(t)/2)
+        if not p_stop:  p_stop= p_start + 20000*2
+
         fig, ax = plt.subplots(2,2, sharex=True)
 
         v = np.array(v)
@@ -251,16 +258,13 @@ def drawLemboxVis(f, **kwargs):
     plotLemboxData(v[startTime:stopTime], t[startTime:stopTime], i[startTime:stopTime], avgV[startTime:stopTime], avgI[startTime:stopTime], t_scale, file)
     plotHist(dir, v[begin:end], i[begin:end], t[begin])
     plotHist(dir, v[begin + int(5*sample_rate):begin + int(6*sample_rate)], i[begin + int(5*sample_rate):begin + int(6*sample_rate)], t[begin + int(5*sample_rate)], 'shortscale')
+
     mpl.rcParams['lines.markersize'] = 0.5
-    #plotLemboxData(v[int(22.5*20000):int(32.5*20000)], t[int(22.5*20000):int(32.5*20000)], i[int(22.5*20000):int(32.5*20000)], avgV[int(22.5*20000):int(32.5*20000)], avgI[int(22.5*20000):int(32.5*20000)], t_scale, dir + '/visualizations/lembox_defect.png')
-    #plotLemboxData(v[int(22.5*20000):int(30*20000)], t[int(22.5*20000):int(30*20000)], i[int(22.5*20000):int(30*20000)], avgV[int(22.5*20000):int(30*20000)], avgI[int(22.5*20000):int(30*20000)], t_scale, dir + '/visualizations/lembox_defect_2.png')
-    #plotLemboxData(v[int(30*20000):int(32.5*20000)], t[int(30*20000):int(32.5*20000)], i[int(30*20000):int(32.5*20000)], avgV[int(30*20000):int(32.5*20000)], avgI[int(30*20000):int(32.5*20000)], t_scale, dir + '/visualizations/lembox_defect_3.png')
     plotShortscaleLemboxData(v[startTime:stopTime], t[startTime:stopTime], i[startTime:stopTime], ss_file)
+
+    print('here')
     lemboxSpectrogram(v[startTime:stopTime], i[startTime:stopTime], dir)
-
     shortscaleFFT(v[begin:end], i[begin:end], f, sample_rate)
-
-    #quickPlot((t[begin:begin+(20*70)], avgV[begin:begin+(20*70)]), (t[begin:begin+(20*70)], avgI[begin:begin+(20*70)]))
 
     print('             Average Voltage: ' + str(np.mean(v[begin:end])))
     print('             Average Current: ' + str(np.mean(i[begin:end])))
@@ -296,7 +300,7 @@ def shortscaleFFT(v, i, f, rate):
     
     return
 
-def lemboxSpectrogram(v, i, d):
+def lemboxSpectrogram(v, i, d, max_freq=1000):
 
     v = np.array(v)
     i = np.array(i)
@@ -310,6 +314,7 @@ def lemboxSpectrogram(v, i, d):
     fig, ax = plt.subplots(layout='constrained')
     fig.set_size_inches(15,10)
     librosa.display.specshow(V_db, x_axis="time", y_axis="hz", sr=sample_rate)
+    plt.ylim(top=max_freq)
     plt.colorbar()
     ax.set_title('Voltage')
     plt.savefig(d + '/visualizations/voltage_spectrogram.png')
@@ -317,6 +322,7 @@ def lemboxSpectrogram(v, i, d):
     fig, ax = plt.subplots(layout='constrained')
     fig.set_size_inches(15,10)
     librosa.display.specshow(I_db, x_axis="time", y_axis="hz", sr=sample_rate)
+    plt.ylim(top=max_freq)
     plt.colorbar()
     ax.set_title('Current')
     plt.savefig(d + '/visualizations/Current_spectrogram.png')
