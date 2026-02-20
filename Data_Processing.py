@@ -24,7 +24,7 @@ def process_data_folder(folder_path):
     processing_rules = {
         'microphone_data.csv': 'core_scripts/audio_conversion.py',
         'robot_data.txt': 'core_scripts/robotdata_parsing.py',
-        'lembox_data.csv': 'core_scripts/lembox_scaling.py'
+        'lembox_data.csv': 'core_scripts/lembox_scaling.pyx'
     }
     
     # Process regular files
@@ -52,9 +52,8 @@ def process_data_folder(folder_path):
                                      str(file_path)], check=True)
                         subprocess.run([sys.executable, str(script_dir / 'core_scripts/audio_visualization.py'),
                                         str(folder / 'microphone_data.wav')], check=True)
-                    elif script_name == 'core_scripts/lembox_scaling.py':
-                        subprocess.run([sys.executable, str(script_path),
-                                         str(file_path)], check=True)
+                    elif script_name == 'core_scripts/lembox_scaling.pyx':
+                        subprocess.run([sys.executable, "-c", "from lembox_scaling import scaleLembox; scaleLembox(", str(folder_path), ")"], check=True)
                         subprocess.run([sys.executable, str(script_dir / 'core_scripts/lembox.py'),
                                          str(file_path)], check=True)
                     else:

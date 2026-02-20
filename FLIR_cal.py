@@ -1,15 +1,23 @@
+import pandas as pd
+import numpy as np
+
 from thermography import getPixels, getFrameData, drawTimeAnimation
-from core_scripts.data_manipulation import selectFolder
+from data_manipulation import selectFolder
 
 if __name__ == '__main__':
     dir = selectFolder()
-    dir += '/FLIR'
 
-    p = getPixels(dir, 2)
+    p = getPixels(dir + '/FLIR', 2)
 
-    timestamps, temps, frames = getFrameData(p, dir)
+    timestamps, temps, frames = getFrameData(dir + '/FLIR', p)
 
-    drawTimeAnimation(timestamps, temps, frames, p, dir)
+    print(temps)
 
-    #for t in dat[1]:
-    #    print(t[0][0])
+    cal_data = {}
+    for i, fr in enumerate(frames): cal_data[fr] = temps[i]
+
+    df = pd.read_csv(dir + '/aligned_data.csv')
+
+    print(df.shape)
+
+    np.zeros((df.shape[0], len(p), len(p[1])))

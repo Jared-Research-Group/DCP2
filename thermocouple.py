@@ -4,12 +4,13 @@ import time
 import math
 import os
 import sys
-from core_scripts.data_manipulation import selectFolder
+from data_manipulation import selectFolder
 from batch_process     import dataSearch
 
 # read raw thermocouple data *.csv as pandas DataFrame
 def getThermocoupleData(d, filename='thermocouple_data.csv'):
 
+    print('         Reading thermocouple data...')
     df = pd.read_csv(d + '/' + filename, encoding='cp1252')         # weird specific encoding required for successful read
 
     return df

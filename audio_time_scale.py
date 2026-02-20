@@ -27,9 +27,10 @@ def mic_time(csv_filename, aligned_filename, sample_rate=48000):
         mic.to_csv(aligned_filename, index=False)
         print(f"\nSaved to: {aligned_filename}")
 
+        return mic['Time'].to_numpy(), mic['Amplitude'].to_numpy()
+
     except Exception as e:
-        print(f"Error: {e}")
-    return mic['Time'].to_numpy(), mic['Amplitude'].to_numpy()
+        raise FileNotFoundError
 
 def main():
     if len(sys.argv) < 2:

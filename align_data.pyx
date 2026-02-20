@@ -1,15 +1,21 @@
 import pandas as pd
 import sys
 from tkinter import filedialog
-from core_scripts.lembox import getLemboxData
-from core_scripts.position import readRSI, plotPosValColormap, plotPos
-from audio_time_scale import mic_time
-from core_scripts.data_manipulation import dfToCsv, getStartStop, dfHasColumn, getRollingAvg, quickPlot
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 import time
 import math
+
+from core_scripts.lembox import getLemboxData
+from core_scripts.position import readRSI, plotPosValColormap, plotPos
+from audio_time_scale import mic_time
+from thermography import getFrameData
+from thermocouple import getThermocoupleData
+
+from data_manipulation import dfToCsv, getStartStop, dfHasColumn, getRollingAvg, quickPlot
+
+import cython
 
 sample_rates = {'lembox':20000, 'mic':48000, 'rsi':250}                         # Hz                        (rsi rate may present as 1000 Hz, known bug)
 expected_columns = ['Current(A)', 'Pos_x(mm)', 'Amplitude']                     # 1 per raw data *.csv
@@ -27,30 +33,73 @@ def alignData(dir, forceDataUpdate=False):
         for c in expected_columns:
             if not dfHasColumn(df, c): incompAlignment = True
 
+    cdef list lem, rsi, mic, flir
+    cdef dict nonaligned_data, aligned_data
+
+    nonaligned_data = {}
+    aligned_data = {}
     if noAlignment or incompAlignment or forceDataUpdate:                       # if (for any reason) aligned_data.csv is incomplete, rebuild it
 
         # collect required data from each datatype-specific program
 
-        #interpolated lembox timestamps, raw current, raw voltage, rolling average current, rolling average voltage, global timestamp of data collection start
-        lem_time, curr, volt, avgI, avgV = getLemboxData(dir + '/lembox_data.csv', 5000, forceDataUpdate)
-        lem = [lem_time, curr, avgI, volt, avgV]
+        try:
+            tc_dat = getThermocoupleData(dir)
+            tc_t = tc_dat['Relative Time (s)']
+            
+            nonaligned_data['tc'] = [tc_dat['Relative Time (s)'], tc_dat['Channel 0 (°C)'], tc_dat['Channel 1 (°C)'], tc_dat['Channel 2 (°C)'], tc_dat['Channel 3 (°C)']]
+            aligned_data['tc'] = []
+
+            alignmentDataset = 'tc'
+        except FileNotFoundError: [print('      thermocouple_data.csv not found.')]
+
+        try:
+            flir_t, flir_path = getFrameData(dir + '/FLIR')
+
+            flir_init = flir_t[0]
+            for i, t in enumerate(flir_t):
+                flir_t[i] = t - flir_init
+
+            nonaligned_data['flir'] = [flir_t, flir_path]
+            aligned_data['flir'] = []
+
+            alignmentDataset = 'flir'
+        except FileNotFoundError: print('       FLIR data not found.')
 
         # position data, calculated velocity data, interpolated rsi timestamps, global timestamp of data collection start, calculated RSI sample rate
-        pos, vel, rsi_time, rsiCalcSR = readRSI(dir + '/robot_data.csv', 1000, forceDataUpdate)
-        rsi = [rsi_time, pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], vel[3]]
-        sample_rates['rsi'] = rsiCalcSR
+        try:
+            pos, vel, rsi_time, rsiCalcSR = readRSI(dir + '/robot_data.csv', 1000, forceDataUpdate)
+            sample_rates['rsi'] = rsiCalcSR
+
+            nonaligned_data['rsi'] = [rsi_time, pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], vel[3]]
+            aligned_data['rsi'] = []
+
+            alignmentDataset = 'rsi'
+        except FileNotFoundError: print('       robot_data.csv not found.')        
+
+        #interpolated lembox timestamps, raw current, raw voltage, rolling average current, rolling average voltage, global timestamp of data collection start
+        try:
+            lem_time, curr, volt, avgI, avgV = getLemboxData(dir + '/lembox_data.csv', 5000, forceDataUpdate)
+
+            nonaligned_data['lembox'] = [lem_time, curr, avgI, volt, avgV]
+            aligned_data['lembox'] = []
+
+            alignmentDataset = 'lembox'
+        except FileNotFoundError: print('       lembox_data.csv not found.')
 
         # interpolated mic timestamps, amplitude, global timestamp of data collection start
-        mic_t, mic_A = mic_time(dir + '/microphone_data.csv', dir + '/microphone_data_aligned.csv', sample_rate = 48000)
-        mic = [mic_t, mic_A]
+        try:
+            mic_t, mic_A = mic_time(dir + '/microphone_data.csv', dir + '/microphone_data_aligned.csv', sample_rate = 48000)
+            mic = [mic_t, mic_A]
 
-        nonaligned_data = {'lembox':lem, 'rsi':rsi, 'mic':mic}
+            nonaligned_data['mic'] = mic
+            aligned_data['mic'] = []
 
-        alignmentDataset = 'mic'
-        if nonaligned_data['lembox'][0][-1] - nonaligned_data['mic'][0][-1] > 2: alignmentDataset = 'lembox'                            # we somehow lost microphone data during the weld
-        aligned_data = {'lembox':[], 'rsi':[], 'mic':[]}
+            alignmentDataset = 'mic'
+        except FileNotFoundError: print('       microphone_data.csv not found.')
 
+        # for each data source in need of alignment
         for k in aligned_data.keys():
+            # for each series in dataset
             for i in range(len(nonaligned_data[k]) - 1): 
                 aligned_data[k].append([])                     # size aligned_data to size(number of data columns in non-basis timescale)
             
@@ -65,11 +114,16 @@ def alignData(dir, forceDataUpdate=False):
 
                 for i in range(len(nonaligned_data[k]) - 1):
                     aligned_data[k][i].append(nonaligned_data[k][i+1][index])
-    
-        df = pd.DataFrame({'time':nonaligned_data[alignmentDataset][0], 'Amplitude':aligned_data['mic'][0], 'Current(A)': aligned_data['lembox'][0], 'Avg_Current(A)': aligned_data['lembox'][1], 
-                            'Voltage(V)': aligned_data['lembox'][2], 'Avg_Voltage(V)': aligned_data['lembox'][3], 'Pos_x(mm)': aligned_data['rsi'][0], 
-                            'Pos_y(mm)': aligned_data['rsi'][1], 'Pos_z(mm)': aligned_data['rsi'][2], 'Vel_x(mm/s)': aligned_data['rsi'][3],
-                            'Vel_y(mm/s)': aligned_data['rsi'][4], 'Vel_z(mm/s)': aligned_data['rsi'][5], 'Vel_Comb(mm/s)': aligned_data['rsi'][6]})
+
+        labels = {'tc':['Channel_0(°C)', 'Channel_1(°C)', 'Channel_2(°C)', 'Channel_3(°C)'], 'mic':['Amplitude'], \
+                    'lembox':['Current(A)', 'Avg_Current(A)', 'Voltage(V)', 'Avg_Voltage(V)'], 'rsi':['Pos_x(mm)', \
+                    'Pos_y(mm)', 'Pos_z(mm)', 'Vel_x(mm/s)', 'Vel_y(mm/s)', 'Vel_z(mm/s)', 'Vel_comb(mm/s)'], \
+                    'flir':['FLIR_frame']}
+
+        df = pd.DataFrame({'time':nonaligned_data[alignmentDataset][0]})
+        for dat in aligned_data.keys():
+            for i, stream in enumerate(aligned_data[dat]):
+                df[labels[dat][i]] = stream
        
         dfToCsv(df, dir + '/aligned_data.csv')
 

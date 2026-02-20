@@ -5,6 +5,7 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.colors as colors
 import matplotlib.cm     as cm
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
 from functools import partial
 import numpy as np
 import pandas as pd
@@ -12,7 +13,7 @@ import os
 import math
 import time
 
-from core_scripts.data_manipulation import selectFolder
+from data_manipulation import selectFolder
 from batch_process import dataSearch
 
 import cython
@@ -105,7 +106,7 @@ def getPixels(dir, numPts=1):
     return pos[-1 * numPts:]
 
 # get list of frame timestamps, selected pixel intensities, paths to frames
-def getFrameData(pix, dir):
+def getFrameData(dir, pix=None):
 
     pixelIntensity = []
     framePaths = []
@@ -118,7 +119,8 @@ def getFrameData(pix, dir):
 
         frame = np.load(e.path, allow_pickle=True)
 
-        if len(pix) == 1: pixelIntensity.append([frame.item()['frame'][pix[1]][pix[0]]/ (math.pow(2,16) - 1)])
+        if pix is None: None
+        elif len(pix) == 1: pixelIntensity.append([frame.item()['frame'][pix[1]][pix[0]]/ (math.pow(2,16) - 1)])
         else:
 
             for i in range(len(pix)):
@@ -147,25 +149,30 @@ def getFrameData(pix, dir):
 
         times[i] = t
 
-    #for i, t in enumerate(times):
-    #    times[i] = t - startTime
-
     df = pd.DataFrame(data={'timestamps':times, 'i_pix':pixelIntensity, 'frame_paths':framePaths})
     df.sort_values(by=['timestamps'], inplace=True)
+    df.reset_index(inplace=True)
 
-    temps = []
-    for i in range(len(pix)):
-        temps.append([])
-        for j in range(len(pix[0])):
-            temps[-1].append([])
+    if pix is not None:
+        temps = []
+        for i in range(len(pix)):
+            temps.append([])
+            for j in range(len(pix[0])):
+                temps[-1].append([])
 
-    for moment in df['i_pix'].to_list():
-        for i, row in enumerate(moment):
-            for j, val in enumerate(row):
-                temps[i][j].append(int(val))
+        """
+        for moment in df['i_pix'].to_list():
+            for i, row in enumerate(moment):
+                for j, val in enumerate(row):
+                    temps[i][j].append(int(val))
+        """
 
-    return df['timestamps'].to_list(), temps, df['frame_paths'].to_list()
+        return df['timestamps'].to_list(), df['i_pix'].to_list(), df['frame_paths'].to_list()
 
+    return df['timestamps'].to_list(), df['frame_paths'].to_list()
+    
+
+### NEEDS MODIFICATION, SHAPE OF TEMPS HAS CHANGED
 def drawTimeAnimation(list times, list temps, frames, list pix, dir, int step=100):
 
     t_start = times[0]

@@ -9,6 +9,8 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 
+import cython
+
 def getRollingAvg(arr, avgLen=1000):
     if np.isnan(arr).any():
         print('Array has NaN')
@@ -19,16 +21,17 @@ def getRollingAvg(arr, avgLen=1000):
 
     if type(arr) != list: arr = arr.tolist()
 
-    avg = []
+    cdef list avg = []
     for i in range(avgLen-1):
         avg.append(float('NaN'))
 
-    buffer = arr[:avgLen - 1]
+    cdef list buffer = arr[:avgLen - 1]
     
     for r in range(len(buffer)):
         if math.isnan(buffer[r]): buffer[r] = buffer[r-1]
     
-    s = sum(buffer)
+    cdef double s = sum(buffer)
+    cdef int v
 
     for v in range(len(arr[avgLen-1:])):
         v = v+avgLen - 1
@@ -43,22 +46,22 @@ def getRollingAvg(arr, avgLen=1000):
 
     return avg
 
-def getRollingStdDev(arr, sd_scale=5000):
+def getRollingStdDev(arr, int sd_scale=5000):
 
-    avg_arr = getRollingAvg(arr, sd_scale)
+    cdef list avg_arr = getRollingAvg(arr, sd_scale)
     avg_arr = avg_arr[sd_scale - 1:]
 
-    buffer = [[], []]
+    cdef list buffer = [[], []]
 
     for a in arr[:sd_scale - 1]:
         buffer[0].append(math.pow(a,2))
         buffer[1].append(a)
 
-    s = []
+    cdef list s = []
     s.append(sum(buffer[0]))
     s.append(sum(buffer[1]))
 
-    sd = []
+    cdef list sd = []
     for i, a in enumerate(arr[sd_scale - 1:]):
         buffer[0].append(math.pow(a,2))
         buffer[1].append(a)
@@ -73,26 +76,26 @@ def getRollingStdDev(arr, sd_scale=5000):
 
     return sd
 
-def getRollingSkew(arr, sk_scale, sd):
+def getRollingSkew(arr, int sk_scale, list sd):
 
-    avg_arr = getRollingAvg(arr, sk_scale)
+    cdef list avg_arr = getRollingAvg(arr, sk_scale)
     avg_arr = avg_arr[sk_scale - 1:]
 
     if not sd:
         sd = getRollingStdDev(arr, sk_scale)
 
-    buffer = [[], [], []]
+    cdef list buffer = [[], [], []]
     for a in arr[:sk_scale - 1]:
         buffer[0].append(math.pow(a,3))
         buffer[1].append(math.pow(a,2))
         buffer[2].append(a)
 
-    s = []
+    cdef list s = []
     s.append(sum(buffer[0]))
     s.append(sum(buffer[1]))
     s.append(sum(buffer[2]))
 
-    sk = []
+    cdef list sk = []
     for i, a in enumerate(arr[sk_scale - 1:]):
         buffer[0].append(math.pow(a,3))
         buffer[1].append(math.pow(a,2))
@@ -110,28 +113,28 @@ def getRollingSkew(arr, sk_scale, sd):
 
     return sk
 
-def getRollingKurtosis(arr, k_scale, sd):
+def getRollingKurtosis(arr, int k_scale, list sd):
 
-    avg_arr = getRollingAvg(arr, k_scale)
+    cdef list avg_arr = getRollingAvg(arr, k_scale)
     avg_arr = avg_arr[k_scale - 1:]
 
     if not sd:
         sd = getRollingStdDev(arr, k_scale)
 
-    buffer = [[], [], [], []]
+    cdef list buffer = [[], [], [], []]
     for a in arr[:k_scale - 1]:
         buffer[0].append(math.pow(a,4))
         buffer[1].append(math.pow(a,3))
         buffer[2].append(math.pow(a,2))
         buffer[3].append(a)
 
-    s = []
+    cdef list s = []
     s.append(sum(buffer[0]))
     s.append(sum(buffer[1]))
     s.append(sum(buffer[2]))    
     s.append(sum(buffer[3]))
 
-    k = []
+    cdef list k = []
     for i, a in enumerate(arr[k_scale - 1:]):
         buffer[0].append(math.pow(a,4))
         buffer[1].append(math.pow(a,3))

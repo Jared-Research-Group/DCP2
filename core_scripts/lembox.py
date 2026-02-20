@@ -9,7 +9,13 @@ from tkinter             import filedialog
 import subprocess
 from pathlib import Path
 
+# Add build directory to path so compiled Cython modules can be found
+build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-310')
+if build_dir not in sys.path:
+    sys.path.insert(0, build_dir)
+
 from data_manipulation import getRollingAvg, getRollingStdDev, getRollingSkew, getRollingKurtosis, getStartStop, dfHasColumn, dfAddColumn, dfToCsv, quickPlot
+from lembox_scaling import scaleLembox
 
 sample_rate = 20000 #hz
 
@@ -19,7 +25,7 @@ def getLemboxData(f, n = 1000, forceDataUpdate=False):
     df = pd.read_csv(f)
 
     if not dfHasColumn(df, 'Scaled_Current(A)'):
-        subprocess.run([sys.executable, str(Path(__file__).parent) + '/lembox_scaling.py', str(f)], check=True)
+        scaleLembox(os.path.split(f)[0])
         df = pd.read_csv(f)
 
     curr = df['Scaled_Current(A)'].to_numpy()
