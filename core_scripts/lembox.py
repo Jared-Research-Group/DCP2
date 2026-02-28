@@ -367,7 +367,7 @@ def main():
         pass
 
     print('Generating LEMBOX data visualizations...')
-    drawLemboxVis(csv_file, startup=False)
+    #drawLemboxVis(csv_file, startup=False)
     print('LEMBOX visualization complete')
     return
 

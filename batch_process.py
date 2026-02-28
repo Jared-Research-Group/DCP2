@@ -32,11 +32,13 @@ def dataSearch(f, func, printFlag=True, id='data_collection_', id_atFront=True):
     return found_entities
 
 def batchOperation(e):
+    from align_data import alignData
 
     process_script_dir = os.getcwd()
     #subprocess.run([sys.executable, process_script_dir + '\\create_flirvideo.py', e.path + '\\FLIR', e.path + '\\FLIR.mp4', e.path + '\\FLIR_Frames'], check=True)
+
     subprocess.run([sys.executable, process_script_dir + '\\Data_Processing.py', e.path], check=True)
-    if os.access(e.path + '\\robot_data.csv', os.R_OK): subprocess.run([sys.executable, process_script_dir + '\\align_data.py', e.path], check=True)
+    subprocess.run([sys.executable, process_script_dir + '\\align_data_handler.py', e.path], check=True)
 
     return
 

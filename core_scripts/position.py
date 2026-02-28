@@ -3,7 +3,14 @@ import math
 from tkinter import filedialog
 import pandas as pd
 import numpy as np
-from core_scripts.data_manipulation import dfHasColumn, dfAddColumn, dfToCsv
+import os
+
+# Add build directory to path so compiled Cython modules can be found
+build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-310')
+if build_dir not in sys.path:
+    sys.path.insert(0, build_dir)
+
+from data_manipulation import dfHasColumn, dfAddColumn, dfToCsv
 import matplotlib.pyplot as plt
 
 plt.style.use('_mpl-gallery')

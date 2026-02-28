@@ -53,7 +53,7 @@ def process_data_folder(folder_path):
                         subprocess.run([sys.executable, str(script_dir / 'core_scripts/audio_visualization.py'),
                                         str(folder / 'microphone_data.wav')], check=True)
                     elif script_name == 'core_scripts/lembox_scaling.pyx':
-                        subprocess.run([sys.executable, "-c", "from lembox_scaling import scaleLembox; scaleLembox(", str(folder_path), ")"], check=True)
+                        subprocess.run([sys.executable, "-c", f"from lembox_scaling import scaleLembox; scaleLembox(r'{str(folder)}')"], check=True)
                         subprocess.run([sys.executable, str(script_dir / 'core_scripts/lembox.py'),
                                          str(file_path)], check=True)
                     else:

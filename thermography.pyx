@@ -23,9 +23,8 @@ from libcpp.vector cimport vector
 def getHotFrame(dir):
 
     l = os.listdir(dir)
-    l.sort()
 
-    hotFrame = l[int(len(l)/2)]
+    hotFrame = 'FLIR-Frame-' + str(int(len(l)/2)) + '.npy'
     hotFrame = dir + '/' + hotFrame
 
     hotFrame = np.load(hotFrame, allow_pickle=True)
