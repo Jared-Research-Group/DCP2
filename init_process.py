@@ -1,11 +1,19 @@
 import sys
+import subprocess
+import os
+
 from data_manipulation import selectFolder
 from align_data import alignData
 from batch_process import dataSearch
 
 def batchit(dir):
     dir = dir.path
-    alignData(dir, True)
+
+    subprocess.run([sys.executable, os.getcwd() + '\\Data_Processing.py', dir], check=True)
+
+    print()
+    
+    alignData(dir)
     return
 
 def main():
@@ -14,7 +22,6 @@ def main():
     else:
         dir = sys.argv[1]
     
-    #alignData(dir, True)
     dataSearch(dir, batchit)
     return  
 

@@ -19,7 +19,7 @@ def getRollingAvg(arr, avgLen=1000):
         print('Average window too small: must be larger than 2')
         sys.exit(1)
 
-    if type(arr) != list: arr = arr.tolist()
+    if type(arr) != list: arr = np.asarray(arr).tolist()
 
     cdef list avg = []
     for i in range(avgLen-1):
@@ -44,7 +44,8 @@ def getRollingAvg(arr, avgLen=1000):
         avg.append(s/avgLen)    
         s -= buffer.pop(0)
 
-    return avg
+    
+    return np.array(avg)
 
 def getRollingStdDev(arr, int sd_scale=5000):
 

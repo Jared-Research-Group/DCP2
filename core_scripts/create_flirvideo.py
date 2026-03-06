@@ -85,57 +85,62 @@ def find_global_min_max(input_folder):
 
     return global_min, global_max
 
-def npy_to_video(input_folder, output_file, output_frames_folder, fps=10, width=640, height=480):
-    global_min, global_max = find_global_min_max(input_folder)
-    
-    # Extract timestamps and sort files
-    npy_files_with_timestamps = []
-    for npy_file in os.listdir(input_folder):
-        if npy_file.endswith('.npy'):
+def npy_to_video(input_folder, output_file, output_frames_folder, forceUpdate=False, fps=10, width=640, height=480):
+
+    if not os.access(output_file, os.R_OK) or forceUpdate:
+        global_min, global_max = find_global_min_max(input_folder)
+        
+        # Extract timestamps and sort files
+        npy_files_with_timestamps = []
+        for npy_file in os.listdir(input_folder):
+            if npy_file.endswith('.npy'):
+                npy_file_path = os.path.join(input_folder, npy_file)
+                try:
+                    data = np.load(npy_file_path, allow_pickle=True)
+                    timestamp = data.item().get('timestamp', None)
+                    if timestamp:
+                        npy_files_with_timestamps.append((npy_file, timestamp))
+                except Exception as e:
+                    print(f"Skipping {npy_file}: {e}")
+        
+        # Sort by timestamp
+        npy_files_with_timestamps.sort(key=lambda x: datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S.%f'))
+
+        # Set up video writer and output folder
+        os.makedirs(output_frames_folder, exist_ok=True)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
+
+        # Process frames
+        for i, (npy_file, timestamp) in enumerate(npy_files_with_timestamps):
             npy_file_path = os.path.join(input_folder, npy_file)
             try:
                 data = np.load(npy_file_path, allow_pickle=True)
-                timestamp = data.item().get('timestamp', None)
-                if timestamp:
-                    npy_files_with_timestamps.append((npy_file, timestamp))
+                image = data.item()['frame']
+                
+                image_8bit = convert_to_8bit(image, global_min, global_max)
+                colored_image = apply_inverted_colormap(image_8bit)
+                resized_image = cv2.resize(colored_image, (width, height))
+                
+                # need to compute ends of scale bar correctly. what are the max and min values of a frame/video?
+                image_with_scale_bar = add_vertical_color_scale_bar(resized_image, width, height, global_min, global_max)
+                final_image = add_timestamp(image_with_scale_bar, timestamp, width, height)
+                
+                out.write(final_image)
+                frame_filename = os.path.join(output_frames_folder, f"{os.path.splitext(npy_file)[0]}.png")
+                cv2.imwrite(frame_filename, final_image)
+
+                if (i + 1) % 100 == 0:
+                    print(f"[{i+1}/{len(npy_files_with_timestamps)}] Saved frame: {frame_filename}")
+                
             except Exception as e:
-                print(f"Skipping {npy_file}: {e}")
-    
-    # Sort by timestamp
-    npy_files_with_timestamps.sort(key=lambda x: datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S.%f'))
+                print(f"Error processing {npy_file}: {e}")
 
-    # Set up video writer and output folder
-    os.makedirs(output_frames_folder, exist_ok=True)
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
-
-    # Process frames
-    for i, (npy_file, timestamp) in enumerate(npy_files_with_timestamps):
-        npy_file_path = os.path.join(input_folder, npy_file)
-        try:
-            data = np.load(npy_file_path, allow_pickle=True)
-            image = data.item()['frame']
-            
-            image_8bit = convert_to_8bit(image, global_min, global_max)
-            colored_image = apply_inverted_colormap(image_8bit)
-            resized_image = cv2.resize(colored_image, (width, height))
-            
-            # need to compute ends of scale bar correctly. what are the max and min values of a frame/video?
-            image_with_scale_bar = add_vertical_color_scale_bar(resized_image, width, height, global_min, global_max)
-            final_image = add_timestamp(image_with_scale_bar, timestamp, width, height)
-            
-            out.write(final_image)
-            frame_filename = os.path.join(output_frames_folder, f"{os.path.splitext(npy_file)[0]}.png")
-            cv2.imwrite(frame_filename, final_image)
-
-            if (i + 1) % 100 == 0:
-                print(f"[{i+1}/{len(npy_files_with_timestamps)}] Saved frame: {frame_filename}")
-            
-        except Exception as e:
-            print(f"Error processing {npy_file}: {e}")
-
-    out.release()
-    print(f"Video saved to {output_file}")
+        out.release()
+        print(f"Video saved to {output_file}")
+    else:
+        print("FLIR video is already created. (Use forceUpdate bool to create anyway)")
+    return
 
 if __name__ == "__main__":
     import sys

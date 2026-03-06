@@ -3,7 +3,7 @@ from Cython.Build import cythonize
 
 setup(
     name="xiris",
-    ext_modules=cythonize("create_xirisvideo.pyx"),
+    ext_modules=cythonize("xiris.pyx"),
 )
 
 setup(
@@ -24,4 +24,9 @@ setup(
 setup(
     name="lembox_scaling",
     ext_modules=cythonize("core_scripts/lembox_scaling.pyx"),
+)
+
+setup(
+    name="lembox",
+    ext_modules=cythonize("core_scripts/lembox.pyx"),
 )

@@ -9,6 +9,8 @@ from tkinter             import filedialog
 import subprocess
 from pathlib import Path
 
+import cython
+
 # Add build directory to path so compiled Cython modules can be found
 build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-310')
 if build_dir not in sys.path:
@@ -28,9 +30,10 @@ def getLemboxData(f, n = 1000, forceDataUpdate=False):
         scaleLembox(os.path.split(f)[0])
         df = pd.read_csv(f)
 
-    curr = df['Scaled_Current(A)'].to_numpy()
-    volt = df['Scaled_Voltage(V)'].to_numpy()
+    cdef double[:] curr = df['Scaled_Current(A)'].to_numpy()
+    cdef double[:] volt = df['Scaled_Voltage(V)'].to_numpy()
 
+    cdef double[:] avgV, avgI, time
     if not dfHasColumn(df, 'Avg_Voltage(V)') or forceDataUpdate or n==200:
         avgV =  getRollingAvg(volt, n)
         avgI = getRollingAvg(curr, n)
@@ -40,18 +43,18 @@ def getLemboxData(f, n = 1000, forceDataUpdate=False):
         for r in range(len(time)):
             time[r] = time[r]/float(sample_rate)
 
-        dfAddColumn(df, avgV, 'Avg_Voltage(V)')
-        dfAddColumn(df, avgI, 'Avg_Current(A)')
-        dfAddColumn(df, time, 'Interpolated_Time(s)')
+        dfAddColumn(df, np.asarray(avgV), 'Avg_Voltage(V)')
+        dfAddColumn(df, np.asarray(avgI), 'Avg_Current(A)')
+        dfAddColumn(df, np.asarray(time), 'Interpolated_Time(s)')
 
         if n != 200:
             dfToCsv(df, f)
     else:
-        avgV = df['Avg_Voltage(V)']
-        avgI = df['Avg_Current(A)']
-        time = df['Interpolated_Time(s)']
+        avgV = df['Avg_Voltage(V)'].to_numpy()
+        avgI = df['Avg_Current(A)'].to_numpy()
+        time = df['Interpolated_Time(s)'].to_numpy()
 
-    return  time, df['Scaled_Current(A)'], df['Scaled_Voltage(V)'], avgI, avgV
+    return  np.asarray(time), np.asarray(curr), np.asarray(volt), np.asarray(avgI), np.asarray(avgV)
 
 def drawStats(t, i, v, dir, startTime, stopTime, size, scale=sample_rate):
 
@@ -353,8 +356,10 @@ def getAvgStdDev(v, i, t, plot=False, n=20000):
 
     return
 
-def main():
-    if len(sys.argv) != 2:
+def main(csv_file=None):
+    if csv_file is not None:
+        None
+    elif len(sys.argv) != 2:
         csv_file = filedialog.askopenfilename()
     else:
         csv_file = sys.argv[1]

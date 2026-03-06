@@ -26,6 +26,9 @@ def getFrameList(dir):
 
 def convertFrame(f):
     """Efficiently read raw frame data using NumPy bulk read instead of pixel-by-pixel loop"""
+
+    cdef bytearray pixel_data
+    cdef unsigned short[:,:] intensity
     with open(f, "rb") as frame:
         frame.read(16)  # Skip header
         width = int.from_bytes(frame.read(4), 'little')
@@ -33,7 +36,7 @@ def convertFrame(f):
         frame.read(32)  # Skip remaining header
         
         # Bulk read all pixels at once instead of looping
-        pixel_data = frame.read(height * width * 2)
+        pixel_data = bytearray(frame.read(height * width * 2))
         intensity = np.frombuffer(pixel_data, dtype=np.uint16).reshape((height, width))
     
     return intensity
@@ -43,6 +46,7 @@ def buildSingleFrame(f, fig=None, ax=None):
     if fig is None or ax is None:
         fig, ax = plt.subplots(constrained_layout=True)
         ax.axis('off')
+
         #fig.colorbar(cm.ScalarMappable(norm=colors.Normalize(vmin=350, vmax=1800), cmap='PuRd'), ax=ax)
     
     img = ax.imshow(convertFrame(f), cmap='PuRd')

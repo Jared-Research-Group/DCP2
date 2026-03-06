@@ -7,7 +7,7 @@ import numpy as np
 import time
 import math
 
-from core_scripts.lembox import getLemboxData
+from lembox import getLemboxData
 from core_scripts.position import readRSI, plotPosValColormap, plotPos
 from audio_time_scale import mic_time
 from thermography import getFrameData
