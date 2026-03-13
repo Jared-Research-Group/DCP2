@@ -3,6 +3,7 @@ import cv2
 import os
 import matplotlib.pyplot as plt
 from datetime import datetime
+import math
 
 def convert_to_8bit(image, global_min, global_max):
     image_normalized = (image - global_min) / (global_max - global_min)
@@ -32,16 +33,16 @@ def add_vertical_color_scale_bar(image, width, height, global_min, global_max):
 ###################################################################################################
 # This section is where you set the minimum and maximum values of the scale bar.    
     # Test Range (using raw values directly)
-    min_temperature = global_min
-    max_temperature = global_max
+    #min_temperature = global_min
+    #max_temperature = global_max
 
-    #Lower Range
-    #min_temperature = -0.000000045*global_min*global_min + 0.0095*global_min-85
-    #max_temperature = -0.000000045*global_max*global_max + 0.0095*global_max-85
     
-    #Upper Range
-    #min_temperature = 0.0468*global_min-267.72
-    #max_temperature = 0.0468*global_max-267.72
+    min_temperature = (math.log(global_min + -4866.8315) * ((((global_min + -0.0022182227) + ((global_min * -11.567278) + math.log(global_min * 0.9920836))) + -0.0039851097) + (((global_min * 10.568432) + -0.0039851097) + 63.695824))) + -281.73764 - 273.15
+    max_temperature = (math.log(global_max + -4866.8315) * ((((global_max + -0.0022182227) + ((global_max * -11.567278) + math.log(global_max * 0.9920836))) + -0.0039851097) + (((global_max * 10.568432) + -0.0039851097) + 63.695824))) + -281.73764 - 273.15
+
+    #min_temperature  = ((((2 * global_min) + math.log(global_min + -1470.9462)) + (global_min * -1.9999775)) * 65.06531) + -329.85684 - 273.15
+    #max_temperature  = ((((2 * global_max) + math.log(global_max + -1470.9462)) + (global_max * -1.9999775)) * 65.06531) + -329.85684 - 273.15
+
 ###################################################################################################
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 0.5
@@ -152,4 +153,4 @@ if __name__ == "__main__":
     output_video = sys.argv[2]
     output_frames = sys.argv[3]
     
-    npy_to_video(input_folder, output_video, output_frames)
+    npy_to_video(input_folder, output_video, output_frames, True)

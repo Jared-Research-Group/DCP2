@@ -107,9 +107,9 @@ def getPixels(dir, numPts=1):
 # get list of frame timestamps, selected pixel intensities, paths to frames
 def getFrameData(dir, pix=None):
 
-    pixelIntensity = []
-    framePaths = []
-    times     = []
+    cdef list pixelIntensity = []
+    cdef list framePaths     = []
+    cdef list times          = []
 
     def getPixelIntensityTrend(e):
         nonlocal pix
@@ -117,20 +117,22 @@ def getFrameData(dir, pix=None):
         pixelIntensity.append([])
 
         frame = np.load(e.path, allow_pickle=True)
+        times.append(frame.item()['timestamp'])
+        framePaths.append(e.path)
+
+        print(e.path)
+
+        cdef unsigned short[:,:] frame_dat = frame.item()['frame']
 
         if pix is None: None
-        elif len(pix) == 1: pixelIntensity.append([frame.item()['frame'][pix[1]][pix[0]]/ (math.pow(2,16) - 1)])
+        elif len(pix) == 1: pixelIntensity.append([frame_dat[pix[1]][pix[0]]/ (math.pow(2,16) - 1)])
         else:
 
             for i in range(len(pix)):
                 pixelIntensity[-1].append([])
                 for j in range(len(pix[i])):
                     p = pix[i][j]
-                    pixelIntensity[-1][-1].append(frame.item()['frame'][p[1]][p[0]])
-
-
-        framePaths.append(e.path)
-        times.append(frame.item()['timestamp'])
+                    pixelIntensity[-1][-1].append(frame_dat[p[1]][p[0]])
         
         return
     
