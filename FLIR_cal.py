@@ -18,14 +18,14 @@ from align_data import alignData
 start_frames = {'60C High':'150', '60C Low':'140', '90C High':'130', '90C Low':'150', '120C High':'140', '120C Low':'190', '150C High':'145', \
                 '150C Low':'130', '180C High':'160', '180C Low':'200', '215C High':'180', '230C High':'220', '230C Low':'140', \
                 'Ambient High':'200', 'Ambient Low':'200', '250C High':'0', '300C High 1':'0', '300C High 2':'0', '300C High 3':'0', \
-                'Cold High':'0', 'Cold Low':'0', 'dark high':'0', 'dark low':'0', 'Warming High':'0', '400C High':'0', 'burning_kaptan High':'0'}
+                'Cold High':'0', 'Cold Low':'0', 'dark high':'0', 'dark low':'0', 'Warming High':'0', '400C High':'0', 'burning_kaptan High':'0', '500C High':'0'}
 
 positions = {'60C High':'021026', '60C Low':'021026', '90C High':'021026', '90C Low':'021026', '120C High':'021026', '120C Low':'021026', '150C High':'021026', \
                 '150C Low':'021026', '180C High':'021026', '180C Low':'021026', '215C High':'021026', '230C High':'021126', '230C Low':'021126', \
                 'Ambient High':'021126', 'Ambient Low':'021126', 'Cold High':'022726', 'Cold Low':'022726', 'Warming High':'022726', '250C High':'030326', \
-                '300C High 1':'030326', '300C High 2':'030326', '300C High 3':'030326', 'dark low':'022726', 'dark high':'022726', '400C High':'031226_2', 'burning_kaptan High':'031226_1'}
+                '300C High 1':'030326', '300C High 2':'030326', '300C High 3':'030326', 'dark low':'022726', 'dark high':'022726', '400C High':'031226_2', 'burning_kaptan High':'031226_1', '500C High':'031326'}
 
-validation_datasets = ['250C High', '300C High 1', '300C High 2', '300C High 3', 'Warming High', '400C High', 'burning_kaptan High']
+validation_datasets = ['250C High', '300C High 1', '300C High 2', '300C High 3', 'Warming High', '400C High', 'burning_kaptan High', '500C High']
 
 # highlights each pixel in pix in a given frame, used for validation of pixel region selection
 def highlight_rect(fr, pix):
@@ -292,14 +292,14 @@ def validate_response(vali_data, window=300):
 if __name__ == '__main__':
     
     dir = selectFolder()
-
-    '''
+    
+    
     its = 80000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
     
-    validation_data = ['burning_kaptan High']
+    validation_data = ['500C High', '300C High 3', '250C High']
 
     
     highRegimeData, lowRegimeData = combineData(dir, calibration_datasets)
@@ -325,16 +325,16 @@ if __name__ == '__main__':
 
 
     plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit), (validationHigh, validationLow))
+    
+    
+
+
     '''
-    
-
-
-    
     # need to do this for every validation dataset
-    vali_data = getCalData(dir + '/300C High 1/' + 'data_collection_20260303_134620', False, False, False, -1, True)
+    vali_data = getCalData(dir + '/500C High/' + 'data_collection_20260313_183910', False, False, False, -1, True)
 
     validate_response(vali_data, 300)
-    
+    '''
     
     
 
