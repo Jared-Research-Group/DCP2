@@ -4,6 +4,7 @@ from tkinter import filedialog
 import pandas as pd
 import numpy as np
 import os
+from datetime import datetime
 
 # Add build directory to path so compiled Cython modules can be found
 build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-310')
@@ -21,6 +22,8 @@ def readRSI(f, window = 1000, forceDataUpdate = False):
 
     df = pd.read_csv(f)
 
+
+    # if we start data collection, run the KUKA through an RSI start statement in robot code, then block select back out, we see a gap in RSI data. Here, we skip to the last block of data with no time gaps > 1 second
     realStart = 0
     for i, t in enumerate(df['RelativeTime'][1:], start=1):
         if df['RelativeTime'][i] - df['RelativeTime'][i - 1] > 1: realStart = i
@@ -62,7 +65,11 @@ def readRSI(f, window = 1000, forceDataUpdate = False):
         vel_mag = df['vel_mag']
         ti = df['Interpolated_Time(s)']
 
-    return (pos_x, pos_y, pos_z), (vel_x, vel_y, vel_z, vel_mag), ti, RSI_rate
+    time = []
+    for m in df['SystemTime']:
+        time.append(datetime.strptime(m, '%Y-%m-%d %H:%M:%S.%f'))
+
+    return (pos_x, pos_y, pos_z), (vel_x, vel_y, vel_z, vel_mag), time, ti, RSI_rate
 
 def getVelocities(x, y, z, t, w):
     vx = []
@@ -180,7 +187,7 @@ def main():
     else:
         input_file = sys.argv[1]
 
-    pos, vel, ti, rsi_rate = readRSI(input_file, True)
+    pos, vel, timestamps, ti, rsi_rate = readRSI(input_file, True)
     plotPos(pos)
 
 if __name__ == '__main__': main()

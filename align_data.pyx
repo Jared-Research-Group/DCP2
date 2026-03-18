@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import math
+from datetime import datetime
 
 from lembox import getLemboxData
 from core_scripts.position import readRSI, plotPosValColormap, plotPos
@@ -30,34 +31,39 @@ def alignData(dir, forceDataUpdate=False):
         df = pd.read_csv(dir +'/aligned_data.csv')
 
         incompAlignment = False
-        for c in expected_columns:
-            if not dfHasColumn(df, c): incompAlignment = True
+        #for c in expected_columns:                                             # program is now general for any combination of data streams. This check would force unnessecary overwrites
+        #    if not dfHasColumn(df, c): incompAlignment = True
 
-    cdef list lem, rsi, mic, flir
     cdef dict nonaligned_data, aligned_data
 
     nonaligned_data = {}
     aligned_data = {}
     if noAlignment or incompAlignment or forceDataUpdate:                       # if (for any reason) aligned_data.csv is incomplete, rebuild it
 
-        # collect required data from each datatype-specific program
+        # collect required data from each datatype-specific program. data types are collected in ascending order of data rate. This way, the highest data rate
+        # (last non-exception try block) is always set as alignmentDataset
+
+        ############################################
+        # Thermocouple
 
         try:
             tc_dat = getThermocoupleData(dir)
-            tc_t = tc_dat['Relative Time (s)']
+
+            tc_t = []
+            for t in tc_dat['Timestamp']:
+                tc_t.append(datetime.strptime(t, '%Y-%m-%d %H:%M:%S.%f'))
             
-            nonaligned_data['tc'] = [tc_dat['Relative Time (s)'], tc_dat['Channel 0 (°C)'], tc_dat['Channel 1 (°C)'], tc_dat['Channel 2 (°C)'], tc_dat['Channel 3 (°C)']]
+            nonaligned_data['tc'] = [tc_t, tc_dat['Channel 0 (°C)'], tc_dat['Channel 1 (°C)'], tc_dat['Channel 2 (°C)'], tc_dat['Channel 3 (°C)']]
             aligned_data['tc'] = []
 
             alignmentDataset = 'tc'
         except FileNotFoundError: [print('      thermocouple_data.csv not found.')]
 
+        ############################################
+        # FLIR
+
         try:
             flir_t, flir_path = getFrameData(dir + '/FLIR')
-
-            flir_init = flir_t[0]
-            for i, t in enumerate(flir_t):
-                flir_t[i] = t - flir_init
 
             nonaligned_data['flir'] = [flir_t, flir_path]
             aligned_data['flir'] = []
@@ -65,26 +71,36 @@ def alignData(dir, forceDataUpdate=False):
             alignmentDataset = 'flir'
         except FileNotFoundError: print('       FLIR data not found.')
 
+        ############################################
+        # RSI
+
         # position data, calculated velocity data, interpolated rsi timestamps, global timestamp of data collection start, calculated RSI sample rate
         try:
-            pos, vel, rsi_time, rsiCalcSR = readRSI(dir + '/robot_data.csv', 1000, forceDataUpdate)
+            pos, vel, rsi_timestamps, rsi_time, rsiCalcSR = readRSI(dir + '/robot_data.csv', 1000, forceDataUpdate)
             sample_rates['rsi'] = rsiCalcSR
 
-            nonaligned_data['rsi'] = [rsi_time, pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], vel[3]]
+            nonaligned_data['rsi'] = [rsi_timestamps, pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], vel[3]]
             aligned_data['rsi'] = []
 
             alignmentDataset = 'rsi'
-        except FileNotFoundError: print('       robot_data.csv not found.')        
+        except FileNotFoundError: print('       robot_data.csv not found.')       
+
+        ############################################
+        # LEMBOX
 
         #interpolated lembox timestamps, raw current, raw voltage, rolling average current, rolling average voltage, global timestamp of data collection start
         try:
-            lem_time, curr, volt, avgI, avgV = getLemboxData(dir + '/lembox_data.csv', 5000, forceDataUpdate)
+
+            lem_time_rel, curr, volt, avgI, avgV, lem_time = getLemboxData(dir + '/lembox_data.csv', 5000, forceDataUpdate)
 
             nonaligned_data['lembox'] = [lem_time, curr, avgI, volt, avgV]
             aligned_data['lembox'] = []
 
             alignmentDataset = 'lembox'
         except FileNotFoundError: print('       lembox_data.csv not found.')
+
+        ############################################
+        # MIC
 
         # interpolated mic timestamps, amplitude, global timestamp of data collection start
         try:
@@ -97,8 +113,19 @@ def alignData(dir, forceDataUpdate=False):
             alignmentDataset = 'mic'
         except FileNotFoundError: print('       microphone_data.csv not found.')
 
+        ############################################
+
+        # find the latest start time of our data streams. We will drop all data before this time later
+        lastStart = datetime(1990, 1, 1)
+        for key, dat in nonaligned_data.items():
+            if dat[0][0] > lastStart:
+                lastStart = dat[0][0]
+
+        # Do the actual alignment
+
         # for each data source in need of alignment
         for k in aligned_data.keys():
+
             # for each series in dataset
             for i in range(len(nonaligned_data[k]) - 1): 
                 aligned_data[k].append([])                     # size aligned_data to size(number of data columns in non-basis timescale)
@@ -124,7 +151,18 @@ def alignData(dir, forceDataUpdate=False):
         for dat in aligned_data.keys():
             for i, stream in enumerate(aligned_data[dat]):
                 df[labels[dat][i]] = stream
+        
+        for key, data in nonaligned_data.items():
+            print(key, ': ', data[0][0])
+
+        print()
+        print(lastStart)
+        print(df)
        
+        df = df[df['time'] >= lastStart]        # drop all data before latest datastream start. We do it after alignment because it is easier to drop from a dataframe than individual data streams. Optimizaion to be had here.
+
+        print(df)
+
         dfToCsv(df, dir + '/aligned_data.csv')
 
     return df

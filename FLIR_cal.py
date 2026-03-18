@@ -115,7 +115,8 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
             df = pd.read_csv(os.path.split(dir)[0] + '/' + temp_regime + '_unwindowed.csv')
 
     channel_num = 0
-    if temp_regime in ['burning_kaptan High']:
+
+    if 'kaptan' in temp_regime or '400' in temp_regime:
         channel_num = 1
 
     if needTimes:
@@ -165,17 +166,13 @@ def plotCalCurve(data, fit=None, vali_data=None):
             else:
                 plt.plot(fit_intensity, fit_vals, color='purple', label=(str('Calibration Curve ' + (str(temp_regime.iloc[0])[-4:]).strip()) + ': ' + fit_str))
 
-        if vali_data is not None:
-            vali_intensity, vali_temp, vali_name = vali_data[i]
+    if vali_data is not None:
+        for i, data in enumerate(vali_data):
+            vali_intensity, vali_temp, vali_name = data
             vali_temp -= 273.15
-            #vali_temp -= 370.0
 
-            if len(vali_data) == 1:
-                plt.scatter(vali_intensity, vali_temp, color='red', label='Validation Values', s=0.05)
-            elif (str(temp_regime.iloc[0])[-4:]).strip() == 'High':
-                plt.scatter(vali_intensity, vali_temp, color='red', label=str('Validation Values ' + (str(temp_regime.iloc[0])[-4:]).strip()), s=0.05)
-            else:
-                plt.scatter(flir_intensity, tc_temp, color='black', label=str('Validation Values ' + (str(temp_regime.iloc[0])[-4:]).strip()), s=0.05)
+            plt.scatter(vali_intensity, vali_temp, label='Validation Curve ' + str(i), s=0.05)
+
     
     if len(data) > 1 or fit is not None or vali_data is not None:
         plt.legend()
@@ -293,13 +290,12 @@ if __name__ == '__main__':
     
     dir = selectFolder()
     
-    
     its = 80000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
     
-    validation_data = ['500C High', '300C High 3', '250C High']
+    validation_data = ['500C High']
 
     
     highRegimeData, lowRegimeData = combineData(dir, calibration_datasets)
@@ -307,31 +303,47 @@ if __name__ == '__main__':
     #high_fit = regress(highRegimeData, dir, its)
     #low_fit = regress(lowRegimeData, dir, its)
 
-    #high_fit = pysr.PySRRegressor()
-    #low_fit  = pysr.PySRRegressor()
+    high_fit = pysr.PySRRegressor()
+    low_fit  = pysr.PySRRegressor()
 
-    #high_fit = high_fit.from_file(run_directory=dir + '/fits/High/20260310_175733_l4OvqD', model_selection='best')
-    #low_fit = low_fit.from_file(run_directory=dir + '/fits/Low/20260311_013003_hNviyE', model_selection='best')
+
+    high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
+    low_fit = low_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
     
-    high_fit = (sympy.log(x + -4866.8315) * ((((x + -0.0022182227) + ((x * -11.567278) + sympy.log(x * 0.9920836))) + -0.0039851097) + (((x * 10.568432) + -0.0039851097) + 63.695824))) + -281.73764
-    low_fit  = ((((x + x) + sympy.log(x + -1470.9462)) + (x * -1.9999775)) * 65.06531) + -329.85684
+    #high_fit = (sympy.log(x + -4866.8315) * ((((x + -0.0022182227) + ((x * -11.567278) + sympy.log(x * 0.9920836))) + -0.0039851097) + (((x * 10.568432) + -0.0039851097) + 63.695824))) + -281.73764
+    #low_fit  = ((((x + x) + sympy.log(x + -1470.9462)) + (x * -1.9999775)) * 65.06531) + -329.85684
 
     #high_fit = (((x - 5701.5874) ** 0.54381406) * 2.2836618) + 223.62657
     #low_fit = (sympy.log(x) - 5.849394) * ((x * 0.00020334013) + 79.51011)
 
-    validationHigh, validationLow = combineData(dir, validation_data, True)
+    vali_data = []
+    for data in validation_data:
+        validationHigh, validationLow = combineData(dir, [data], True)
+        vali_data.append(validationHigh)
+        #vali_data.append(validationLow)
 
-    print(validationHigh)
+    #print(vali_data)
 
 
-    plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit), (validationHigh, validationLow))
-    
-    
+    plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit), vali_data)
 
+    '''
+    high_fit = pysr.PySRRegressor()
+    low_fit  = pysr.PySRRegressor()
+
+    high_fit = high_fit.from_file(run_directory=dir + '/fits/High/20260310_175733_l4OvqD', model_selection='best')
+    low_fit = low_fit.from_file(run_directory=dir + '/fits/Low/20260311_013003_hNviyE', model_selection='best')
+
+    print(high_fit.sympy(),'\n')
+    print(high_fit.equations_)
+    print('\n\n-----------------------------------\n\n')
+    print(low_fit.sympy(), '\n')
+    print(low_fit.equations_)
+    '''
 
     '''
     # need to do this for every validation dataset
-    vali_data = getCalData(dir + '/500C High/' + 'data_collection_20260313_183910', False, False, False, -1, True)
+    vali_data = getCalData(dir + '/300C High 3/' + 'data_collection_20260303_140755', False, False, False, -1, True)
 
     validate_response(vali_data, 300)
     '''

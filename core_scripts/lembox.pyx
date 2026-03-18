@@ -9,6 +9,8 @@ from tkinter             import filedialog
 import subprocess
 from pathlib import Path
 
+from datetime import datetime, timezone, timedelta
+
 import cython
 
 # Add build directory to path so compiled Cython modules can be found
@@ -22,7 +24,7 @@ from lembox_scaling import scaleLembox
 sample_rate = 20000 #hz
 
 def getLemboxData(f, n = 1000, forceDataUpdate=False):
-    print('         Reading LEMBOX Data...')
+    print('         Reading LEMBOX data...')
 
     df = pd.read_csv(f)
 
@@ -54,7 +56,13 @@ def getLemboxData(f, n = 1000, forceDataUpdate=False):
         avgI = df['Avg_Current(A)'].to_numpy()
         time = df['Interpolated_Time(s)'].to_numpy()
 
-    return  np.asarray(time), np.asarray(curr), np.asarray(volt), np.asarray(avgI), np.asarray(avgV)
+    abs_time = []
+    for t in df['Timestamp']:
+        abs_time.append(datetime.strptime((t[:-4] + ' UTC'), '%Y-%m-%d %H:%M:%S.%f %Z').astimezone(timezone(timedelta(hours=-10))).replace(tzinfo=None))
+
+
+
+    return  np.asarray(time), np.asarray(curr), np.asarray(volt), np.asarray(avgI), np.asarray(avgV), np.asarray(abs_time)
 
 def drawStats(t, i, v, dir, startTime, stopTime, size, scale=sample_rate):
 
@@ -235,7 +243,7 @@ def drawLemboxVis(f, **kwargs):
     else:
         n = 1000
 
-    t, i, v, avgI, avgV = getLemboxData(f, n, False)
+    t, i, v, avgI, avgV, timestamps = getLemboxData(f, n, False)
 
     t_scale = t[int(len(t)/2) + n] - t[int(len(t)/2)]        # compute time length of rolling average
     t_scale = f"{t_scale:.5f}"
@@ -372,7 +380,7 @@ def main(csv_file=None):
         pass
 
     print('Generating LEMBOX data visualizations...')
-    #drawLemboxVis(csv_file, startup=False)
+    drawLemboxVis(csv_file, startup=False)
     print('LEMBOX visualization complete')
     return
 

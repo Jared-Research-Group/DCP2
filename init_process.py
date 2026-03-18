@@ -13,7 +13,7 @@ def batchit(dir):
 
     print()
     
-    alignData(dir)
+    alignData(dir, True)
     return
 
 def main():

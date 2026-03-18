@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 import sys
+from datetime import datetime
 
 def mic_time(csv_filename, aligned_filename, sample_rate=48000):
     print('         Reading microphone data...')
@@ -27,7 +28,11 @@ def mic_time(csv_filename, aligned_filename, sample_rate=48000):
         mic.to_csv(aligned_filename, index=False)
         print(f"\nSaved to: {aligned_filename}")
 
-        return mic['Time'].to_numpy(), mic['Amplitude'].to_numpy()
+        timestamp = []
+        for t in df['Absolute Time']:
+            timestamp.append(datetime.strptime(t, '%Y-%m-%d %H:%M:%S.%f'))
+
+        return np.array(timestamp), mic['Amplitude'].to_numpy()
 
     except Exception as e:
         raise FileNotFoundError

@@ -10,10 +10,11 @@ from functools import partial
 import numpy as np
 import pandas as pd
 import os
+from pathlib import Path
 import math
-import time
+from datetime import datetime
 
-from data_manipulation import selectFolder
+from data_manipulation import selectFolder, printProgressBar
 from batch_process import dataSearch
 
 import cython
@@ -111,6 +112,8 @@ def getFrameData(dir, pix=None):
     cdef list framePaths     = []
     cdef list times          = []
 
+    numFrames = len([p for p in Path(dir).iterdir() if p.is_file()])
+
     def getPixelIntensityTrend(e):
         nonlocal pix
         nonlocal pixelIntensity
@@ -120,7 +123,7 @@ def getFrameData(dir, pix=None):
         times.append(frame.item()['timestamp'])
         framePaths.append(e.path)
 
-        print(e.path)
+        printProgressBar(len(framePaths), numFrames)
 
         cdef unsigned short[:,:] frame_dat = frame.item()['frame']
 
@@ -136,19 +139,12 @@ def getFrameData(dir, pix=None):
         
         return
     
+    print('         Reading FLIR Frames...')
     dataSearch(dir, getPixelIntensityTrend, False, 'FLIR-Frame')
-
-    startTime = time.mktime(time.strptime(times[0][:-4], '%Y-%m-%d %H:%M:%S'))
-    startTime += float(times[0][-3:])/math.pow(10,3)
+    print()
 
     for i, t in enumerate(times):
-        t_micro = float(t[-3:])/math.pow(10,3)
-        t = time.mktime(time.strptime(t[:-4], '%Y-%m-%d %H:%M:%S'))
-        t += t_micro
-
-        if t < startTime: startTime = t
-
-        times[i] = t
+        times[i] = datetime.strptime(t, '%Y-%m-%d %H:%M:%S.%f')
 
     df = pd.DataFrame(data={'timestamps':times, 'i_pix':pixelIntensity, 'frame_paths':framePaths})
     df.sort_values(by=['timestamps'], inplace=True)
