@@ -14,7 +14,7 @@ from pathlib import Path
 import math
 from datetime import datetime
 
-from data_manipulation import selectFolder, printProgressBar
+from data_manipulation import selectFolder, printProgressBar, flirConversion
 from batch_process import dataSearch
 
 import cython
@@ -32,6 +32,7 @@ def getHotFrame(dir):
 
     return hotFrame.item()['frame']
 
+# used to show user-selected regions
 def highlight_pixel(fr, pix):
     fr[pix[1]][pix[0]] = 1
     fr[pix[1] + 1][pix[0]] = 1
@@ -60,11 +61,13 @@ def getPixels(dir, numPts=1):
         nonlocal fig
         nonlocal pos
 
+        # after each click, record pixel position of click
         pos.append([int(event.xdata), int(event.ydata)])
 
         frame_with_highlights = frame.copy()
-
         highlight_pix = pos
+
+        # if user has selected more pixels than allowed, drop the oldest pixel
         if len(highlight_pix) > numPts: highlight_pix = highlight_pix[-1 * numPts:]
 
         for pixel in highlight_pix:
@@ -84,9 +87,10 @@ def getPixels(dir, numPts=1):
 
     fig.canvas.mpl_disconnect(cid)
 
+    # bad selection
     if len(pos) < numPts: return
 
-        # if 2 pixels are given, get a matrix of all pixels in a rectangle defined at 2 corners by given pixels. This will be used for simple zone selection
+    # if 2 pixels are given, get a matrix of all pixels in a rectangle defined at 2 corners by given pixels. Horizontal rectangular zone selection
     if numPts == 2:
         b = max([pos[-1][1], pos[-2][1]])
         t = min([pos[-1][1], pos[-2][1]])
@@ -102,7 +106,8 @@ def getPixels(dir, numPts=1):
 
         pos = p
         return pos
-
+    
+    # undefined/ single pix case. Return selected pixels
     return pos[-1 * numPts:]
 
 # get list of frame timestamps, selected pixel intensities, paths to frames
@@ -112,23 +117,28 @@ def getFrameData(dir, pix=None):
     cdef list framePaths     = []
     cdef list times          = []
 
-    numFrames = len([p for p in Path(dir).iterdir() if p.is_file()])
+    numFrames = len([p for p in Path(dir).iterdir() if p.is_file()])        # used to print progress bar in recursive file search
 
+    # function called in recursive file search
     def getPixelIntensityTrend(e):
         nonlocal pix
         nonlocal pixelIntensity
         pixelIntensity.append([])
 
+        # read/store timestamp, filename 
         frame = np.load(e.path, allow_pickle=True)
         times.append(frame.item()['timestamp'])
         framePaths.append(e.path)
 
-        printProgressBar(len(framePaths), numFrames)
-
         cdef unsigned short[:,:] frame_dat = frame.item()['frame']
 
+        # variable behavior for different selections of RoI
         if pix is None: None
+
+        # single pixel selected
         elif len(pix) == 1: pixelIntensity.append([frame_dat[pix[1]][pix[0]]/ (math.pow(2,16) - 1)])
+
+        # horizontal rectangular region of pixels selected
         else:
 
             for i in range(len(pix)):
@@ -136,6 +146,8 @@ def getFrameData(dir, pix=None):
                 for j in range(len(pix[i])):
                     p = pix[i][j]
                     pixelIntensity[-1][-1].append(frame_dat[p[1]][p[0]])
+
+        printProgressBar(len(framePaths), numFrames)            # update user on progress
         
         return
     
@@ -143,31 +155,38 @@ def getFrameData(dir, pix=None):
     dataSearch(dir, getPixelIntensityTrend, False, 'FLIR-Frame')
     print()
 
+    # convert timestamp strings to datetime.datetime
     for i, t in enumerate(times):
         times[i] = datetime.strptime(t, '%Y-%m-%d %H:%M:%S.%f')
 
+    # ensure index ascends with time
     df = pd.DataFrame(data={'timestamps':times, 'i_pix':pixelIntensity, 'frame_paths':framePaths})
     df.sort_values(by=['timestamps'], inplace=True)
     df.reset_index(inplace=True)
 
-    if pix is not None:
-        temps = []
-        for i in range(len(pix)):
-            temps.append([])
-            for j in range(len(pix[0])):
-                temps[-1].append([])
-
-        """
-        for moment in df['i_pix'].to_list():
-            for i, row in enumerate(moment):
-                for j, val in enumerate(row):
-                    temps[i][j].append(int(val))
-        """
-
-        return df['timestamps'].to_list(), df['i_pix'].to_list(), df['frame_paths'].to_list()
+    if pix is not None: return df['timestamps'].to_list(), df['i_pix'].to_list(), df['frame_paths'].to_list()
 
     return df['timestamps'].to_list(), df['frame_paths'].to_list()
     
+
+def getTempData(df, pix=None, sparsity=None):
+    intensity = df['i_pix'].to_numpy()
+
+    # only care about every [sparsity]th value. Saves memory
+    if spartisty is not None:
+        sparse_intensity = []
+
+        for fr in intensity:
+            for i in range(len(fr)/sparsity):
+                for j in range(len(fr[0])/sparsity):
+                    sparse_intensity[i][j] = intensity[i*sparsity][j*sparsity]
+
+        intensity = sparse_intensity
+
+    temp = flirConversion(intensity)
+    df['temp_pix'] = temp
+
+    return df
 
 ### NEEDS MODIFICATION, SHAPE OF TEMPS HAS CHANGED
 def drawTimeAnimation(list times, list temps, frames, list pix, dir, int step=100):
@@ -262,12 +281,14 @@ def main():
 
     pixel = getPixels(dir, 1)
 
-    #pixel = pixel[0]
-
     df = getFrameData(pixel, dir)
+    df = getTempData(df, pixel)
+
+    temp_data = df[['time', 'temp_pix']]
+    temp_data.to_csv(os.path.split(dir)[0] + '/temp_field.csv')
 
     #drawTimeAnimation(df, pixel, dir)
-    drawTimeSeriesPixelScatter(df, pixel, dir)
+    #drawTimeSeriesPixelScatter(df, pixel, dir)
 
     return
 

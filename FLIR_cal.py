@@ -8,6 +8,7 @@ import pysr
 import sympy
 from sympy.abc import x
 import math
+from datetime import datetime, timedelta
 
 from thermography import getPixels, getFrameData, getHotFrame
 from data_manipulation import selectFolder, dfToCsv
@@ -85,7 +86,7 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
 
             cal_data[os.path.abspath(fr)] = sum
 
-        df = pd.read_csv(dir + '/aligned_data.csv')
+        df = pd.read_csv(dir + '/aligned_data.csv', parse_dates=['time'])
 
         # add pixel temps to aligned dataset
         for i, fr in enumerate(df['FLIR_frame']):
@@ -95,10 +96,13 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
 
         # we need to window data in time to cut out obfuscation of wall in video, thermal dropoff towards end of data collection
         if window_length != -1:
-            first_frame = df['FLIR_frame'][0][:-5] + start_frames[temp_regime] + '.npy'
-            start_index = (df['FLIR_frame'] == first_frame).idxmax()
+            first_frame = os.path.split(df['FLIR_frame'][0])[0] + '\\FLIR-Frame-' + start_frames[temp_regime] + '.npy'
+            print(first_frame)
 
-            df = df.loc[(df['time'] > df['time'][start_index]) & (df['time'] < df['time'][start_index] + window_length)]
+            start_index = (df['FLIR_frame'] == first_frame).idxmax()
+            print(start_index)
+
+            df = df.loc[(df['time'] > df['time'][start_index]) & (df['time'] < (df['time'][start_index] + timedelta(seconds=window_length)))]
             df.reset_index(inplace=True)
 
             # save windowed data to new .csv for later manipulation
@@ -130,8 +134,6 @@ def plotCalCurve(data, fit=None, vali_data=None):
     plt.figure(layout='constrained')
     for i, series in enumerate(data):
         flir_intensity, tc_temp, temp_regime = series
-
-        print(temp_regime.iloc[0])
 
         tc_temp -= 273.15        # convert back to °C
 
@@ -193,7 +195,7 @@ def combineData(dir, inclusions, validation=False, force_update=False):
             nonlocal df
 
             if os.path.split(os.path.split(d)[0])[1] in validation_datasets:
-                flir_intensity, tc_temp, temp_regime = getCalData(d, True, False, False, -1)
+                flir_intensity, tc_temp, temp_regime = getCalData(d, False, False, False, -1)
             else:
                 flir_intensity, tc_temp, temp_regime = getCalData(d, False)
             tc_temp = tc_temp + 273.15 # convert to kelvin
@@ -290,31 +292,26 @@ if __name__ == '__main__':
     
     dir = selectFolder()
     
-    its = 80000
+    its = 10000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
     
-    validation_data = ['500C High']
+    validation_data = ['250C High', '300C High 1', '300C High 2', '300C High 3', 'Warming High', 'burning_kaptan High', '500C High']
 
     
     highRegimeData, lowRegimeData = combineData(dir, calibration_datasets)
 
-    #high_fit = regress(highRegimeData, dir, its)
-    #low_fit = regress(lowRegimeData, dir, its)
+    high_fit = regress(highRegimeData, dir, its)
+    low_fit = regress(lowRegimeData, dir, its)
 
-    high_fit = pysr.PySRRegressor()
-    low_fit  = pysr.PySRRegressor()
+    #high_fit = pysr.PySRRegressor()
+    #ow_fit  = pysr.PySRRegressor()
 
 
-    high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
-    low_fit = low_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
-    
-    #high_fit = (sympy.log(x + -4866.8315) * ((((x + -0.0022182227) + ((x * -11.567278) + sympy.log(x * 0.9920836))) + -0.0039851097) + (((x * 10.568432) + -0.0039851097) + 63.695824))) + -281.73764
-    #low_fit  = ((((x + x) + sympy.log(x + -1470.9462)) + (x * -1.9999775)) * 65.06531) + -329.85684
-
-    #high_fit = (((x - 5701.5874) ** 0.54381406) * 2.2836618) + 223.62657
-    #low_fit = (sympy.log(x) - 5.849394) * ((x * 0.00020334013) + 79.51011)
+    #high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
+    #high_fit = high_fit.from_file(run_directory="E:/410SS DATA/FLIR CAL - Realigned/fits/High/20260320_135008_kWsA92", model_selection='best')
+    #low_fit = low_fit.from_file(run_directory="E:/410SS DATA/FLIR CAL - Realigned/fits/Low/20260320_135548_TvF4W1", model_selection='best')
 
     vali_data = []
     for data in validation_data:

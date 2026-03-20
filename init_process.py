@@ -9,11 +9,11 @@ from batch_process import dataSearch
 def batchit(dir):
     dir = dir.path
 
-    subprocess.run([sys.executable, os.getcwd() + '\\Data_Processing.py', dir], check=True)
+    #subprocess.run([sys.executable, os.getcwd() + '\\Data_Processing.py', dir], check=True)
 
     print()
     
-    alignData(dir, True)
+    alignData(dir)
     return
 
 def main():

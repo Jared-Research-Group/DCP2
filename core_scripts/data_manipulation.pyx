@@ -8,6 +8,8 @@ import math
 import tkinter as tk
 from tkinter import filedialog
 import os
+import pysr
+import sympy as sp
 
 import cython
 
@@ -228,9 +230,31 @@ def printProgressBar(index, len, ticks=100):
         
         if index % int(len/ticks) == 0:
             prog_str = '\r['
-            for prog in range(int(index / int(len/ticks)) + 1):
+            for prog in range(int(index / int(len/ticks))):
                 prog_str += '='
-            for prog in range(int(ticks - (index / int(len/ticks)) - 1)):
+            for prog in range(int(ticks - (index / int(len/ticks)))):
                 prog_str += ' '
             prog_str += ']'
+
+            prog_str += ' (' + str(round(index/len, 2)) + '%)'
             sys.stdout.write(prog_str)
+
+# data must be np.array!
+def flirConversion(data, curve):
+    model = pysr.PySRRegressor()
+
+    if curve == 'High':
+        model = model.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
+    elif curve == 'Low':
+        model = model.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
+    else:
+        model = model.from_file(run_directory=curve, model_selection='best')
+
+    model = sp.lambdify(x, model.sympy(), modules='numpy')
+
+    temps = np.zeros(data.shape)
+
+    for i, intensity in np.ndenumerate(data):
+        temps[i] = model(intensity) - 273.15
+
+    return temps

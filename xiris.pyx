@@ -14,7 +14,7 @@ from batch_process import dataSearch
 from data_manipulation import selectFolder, printProgressBar
 
 def getFrameList(dir):
-    print('Collecting Frames...')
+    print('         Reading Xiris Data...')
 
     def appendFrame(frame):
         return

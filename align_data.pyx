@@ -6,13 +6,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from lembox import getLemboxData
 from core_scripts.position import readRSI, plotPosValColormap, plotPos
 from audio_time_scale import mic_time
-from thermography import getFrameData
+from thermography import getFrameData as getFrameData_FLIR
 from thermocouple import getThermocoupleData
+from xiris import getFrameList as getFrameData_XIR
 
 from data_manipulation import dfToCsv, getStartStop, dfHasColumn, getRollingAvg, quickPlot
 
@@ -63,7 +64,7 @@ def alignData(dir, forceDataUpdate=False):
         # FLIR
 
         try:
-            flir_t, flir_path = getFrameData(dir + '/FLIR')
+            flir_t, flir_path = getFrameData_FLIR(dir + '/FLIR')
 
             nonaligned_data['flir'] = [flir_t, flir_path]
             aligned_data['flir'] = []
@@ -72,6 +73,28 @@ def alignData(dir, forceDataUpdate=False):
         except FileNotFoundError: print('       FLIR data not found.')
 
         ############################################
+        # XIR
+
+        try:
+            xir_path = getFrameData_XIR(dir + '/Xiris')
+
+            xir_t = []
+            for path in xir_path:
+                t = os.path.split(path)[1][:-4]
+                
+                time = datetime.fromtimestamp(int(t[:-6]))
+                time += timedelta(microseconds=int(t[-6:]))
+
+                xir_t.append(time)
+
+            nonaligned_data['xir'] = [xir_t, xir_path]
+            aligned_data['xir'] = []
+
+            alignmentDataset = 'xir'
+        except FileNotFoundError: print('       Xiris data not found.')
+
+        ############################################
+
         # RSI
 
         # position data, calculated velocity data, interpolated rsi timestamps, global timestamp of data collection start, calculated RSI sample rate
@@ -145,23 +168,14 @@ def alignData(dir, forceDataUpdate=False):
         labels = {'tc':['Channel_0(°C)', 'Channel_1(°C)', 'Channel_2(°C)', 'Channel_3(°C)'], 'mic':['Amplitude'], \
                     'lembox':['Current(A)', 'Avg_Current(A)', 'Voltage(V)', 'Avg_Voltage(V)'], 'rsi':['Pos_x(mm)', \
                     'Pos_y(mm)', 'Pos_z(mm)', 'Vel_x(mm/s)', 'Vel_y(mm/s)', 'Vel_z(mm/s)', 'Vel_comb(mm/s)'], \
-                    'flir':['FLIR_frame']}
+                    'flir':['FLIR_frame'], 'xir':['Xiris_frame']}
 
         df = pd.DataFrame({'time':nonaligned_data[alignmentDataset][0]})
         for dat in aligned_data.keys():
             for i, stream in enumerate(aligned_data[dat]):
                 df[labels[dat][i]] = stream
-        
-        for key, data in nonaligned_data.items():
-            print(key, ': ', data[0][0])
 
-        print()
-        print(lastStart)
-        print(df)
-       
         df = df[df['time'] >= lastStart]        # drop all data before latest datastream start. We do it after alignment because it is easier to drop from a dataframe than individual data streams. Optimizaion to be had here.
-
-        print(df)
 
         dfToCsv(df, dir + '/aligned_data.csv')
 

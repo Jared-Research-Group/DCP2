@@ -112,9 +112,7 @@ def intensity_to_temperature(fr, model):
     temps = np.zeros(fr.shape)
 
     for i, row in enumerate(fr):
-        #temps[i] = model(row.reshape(-1,1)) - 273.15
         temps[i] = model(row) - 273.15
-        #print(temps[i])
 
     return temps
 
