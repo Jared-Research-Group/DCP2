@@ -250,6 +250,7 @@ def flirConversion(data, curve):
     else:
         model = model.from_file(run_directory=curve, model_selection='best')
 
+    x = sp.Symbol('x')
     model = sp.lambdify(x, model.sympy(), modules='numpy')
 
     temps = np.zeros(data.shape)

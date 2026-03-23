@@ -4,6 +4,11 @@ import numpy as np
 import subprocess
 import sys
 import os
+
+build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-310')
+if build_dir not in sys.path:
+    sys.path.insert(0, build_dir)
+    
 import pysr
 import sympy
 from sympy.abc import x
@@ -292,7 +297,7 @@ if __name__ == '__main__':
     
     dir = selectFolder()
     
-    its = 10000
+    its = 100000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']

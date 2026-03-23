@@ -173,7 +173,7 @@ def getTempData(df, pix=None, sparsity=None):
     intensity = df['i_pix'].to_numpy()
 
     # only care about every [sparsity]th value. Saves memory
-    if spartisty is not None:
+    if sparsity is not None:
         sparse_intensity = []
 
         for fr in intensity:
