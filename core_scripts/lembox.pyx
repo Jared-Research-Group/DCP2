@@ -186,9 +186,9 @@ def plotLemboxData(v, t, i, avgV, avgI, t_scale, file):
         return
 
 def plotShortscaleLemboxData(v, t, i, file, n=25, p_start=None, p_stop=None):
-        t.reset_index(inplace=True, drop=True)
-        v.reset_index(inplace=True, drop=True)
-        i.reset_index(inplace=True, drop=True)
+        if type(t) == pd.Series: t.reset_index(inplace=True, drop=True)
+        if type(v) == pd.Series: v.reset_index(inplace=True, drop=True)
+        if type(i) == pd.Series: i.reset_index(inplace=True, drop=True)
 
         if not p_start: p_start=int(len(t)/2)
         if not p_stop:  p_stop= p_start + 20000*2
@@ -279,7 +279,6 @@ def drawLemboxVis(f, **kwargs):
     mpl.rcParams['lines.markersize'] = 0.5
     plotShortscaleLemboxData(v[startTime:stopTime], t[startTime:stopTime], i[startTime:stopTime], ss_file)
 
-    print('here')
     lemboxSpectrogram(v[startTime:stopTime], i[startTime:stopTime], dir)
     shortscaleFFT(v[begin:end], i[begin:end], f, sample_rate)
 

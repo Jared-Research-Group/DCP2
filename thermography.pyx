@@ -14,7 +14,7 @@ from pathlib import Path
 import math
 from datetime import datetime
 
-from data_manipulation import selectFolder, printProgressBar, flirConversion
+from data_manipulation import selectFolder, printProgressBar, flirConversion, get_FLIR_model
 from batch_process import dataSearch
 
 import cython
@@ -169,8 +169,11 @@ def getFrameData(dir, pix=None):
     return df['timestamps'].to_list(), df['frame_paths'].to_list()
     
 
-def getTempData(df, pix=None, sparsity=None):
-    intensity = df['i_pix'].to_numpy()
+def getTempData(df, dir, sparsity=None):
+    model = get_FLIR_model(dir)
+
+    intensity = df['i_pix'].to_list()
+    intensity = np.array(intensity)
 
     # only care about every [sparsity]th value. Saves memory
     if sparsity is not None:
@@ -183,8 +186,10 @@ def getTempData(df, pix=None, sparsity=None):
 
         intensity = sparse_intensity
 
-    temp = flirConversion(intensity)
-    df['temp_pix'] = temp
+    temp = flirConversion(intensity, model)
+
+    df['temp_pix'] = pd.Series(temp.tolist())
+    df.reset_index(inplace=True)
 
     return df
 
@@ -283,9 +288,6 @@ def main():
 
     df = getFrameData(pixel, dir)
     df = getTempData(df, pixel)
-
-    temp_data = df[['time', 'temp_pix']]
-    temp_data.to_csv(os.path.split(dir)[0] + '/temp_field.csv')
 
     #drawTimeAnimation(df, pixel, dir)
     #drawTimeSeriesPixelScatter(df, pixel, dir)

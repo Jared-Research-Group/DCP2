@@ -10,6 +10,9 @@ from tkinter import filedialog
 import os
 import pysr
 import sympy as sp
+import json
+
+from tkinter import simpledialog
 
 import cython
 
@@ -236,26 +239,70 @@ def printProgressBar(index, len, ticks=100):
                 prog_str += ' '
             prog_str += ']'
 
-            prog_str += ' (' + str(round(index/len, 2)) + '%)'
+            prog_str += ' (' + str(round((index/len) * 100, 2)) + '%)'
             sys.stdout.write(prog_str)
 
 # data must be np.array!
-def flirConversion(data, curve):
-    model = pysr.PySRRegressor()
-
-    if curve == 'High':
-        model = model.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
-    elif curve == 'Low':
-        model = model.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
-    else:
-        model = model.from_file(run_directory=curve, model_selection='best')
-
-    x = sp.Symbol('x')
-    model = sp.lambdify(x, model.sympy(), modules='numpy')
-
+def flirConversion(data, model):
     temps = np.zeros(data.shape)
 
+    count = 1
     for i, intensity in np.ndenumerate(data):
-        temps[i] = model(intensity) - 273.15
+        temps[i] = model(float(intensity)) - 273.15
 
+        count += 1
+        printProgressBar(count, data.size)
     return temps
+
+class CaseSelectionDialog(simpledialog.Dialog):
+    def body(self, master):
+        tk.Label(master, text="What temperature range is FLIR data in?").grid(row=0, column=0, sticky="w")
+
+    def buttonbox(self):
+        box = tk.Frame(self)
+
+        tk.Button(box, text='High', width=10, command=self.high).pack(side="left", padx=5, pady=5)
+        tk.Button(box, text='Low', width=10, command=self.low).pack(side="left", padx=5, pady=5)
+        tk.Button(box, text='Cancel', width=10, command=self.cancel).pack(side="left", padx=5, pady=5)
+
+        self.bind("<Return>", self.cancel)
+        self.bind("<Escape>", self.cancel)
+        box.pack()
+
+    def high(self, event=None):
+        self.result = 1
+        self.cancel()
+
+    def low(self, event=None):
+        self.result = 0
+        self.cancel()
+
+def ask_case(parent):
+    dialog = CaseSelectionDialog(parent, title='Case Selection')
+    return dialog.result
+
+def get_FLIR_model(d_in):
+
+    with open(d_in + '/FLIR_Variables.json', 'r') as json_file:
+        params = json.load(json_file)
+
+    if 'case' in params:
+        case = int(params['case'])
+    else:
+        root = tk.Tk()
+        root.withdraw()
+
+        case = ask_case(root)                   # dialog needs to close after button press. json assignment doesnt work, and need to rewrite file.
+        params["case"] = str(case)
+
+        with open(d_in + '/FLIR_Variables.json', 'w') as json_file:
+            json.dump(params, json_file, indent=2)
+
+    x = sp.symbols('FLIR_Intensity')
+
+    if case == 1:
+        high_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
+        return sp.lambdify(x, high_fit.sympy(), modules='numpy')
+    else:
+        low_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
+        return sp.lambdify(x, low_fit.sympy(), modules='numpy')

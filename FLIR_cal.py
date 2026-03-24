@@ -302,21 +302,21 @@ if __name__ == '__main__':
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
     
-    validation_data = ['250C High', '300C High 1', '300C High 2', '300C High 3', 'Warming High', 'burning_kaptan High', '500C High']
+    #validation_data = ['250C High', '300C High 1', '300C High 2', '300C High 3', 'Warming High', 'burning_kaptan High', '500C High']
+    validation_data = ['230C High']
 
     
     highRegimeData, lowRegimeData = combineData(dir, calibration_datasets)
 
-    high_fit = regress(highRegimeData, dir, its)
-    low_fit = regress(lowRegimeData, dir, its)
+    #high_fit = regress(highRegimeData, dir, its)
+    #low_fit = regress(lowRegimeData, dir, its)
 
-    #high_fit = pysr.PySRRegressor()
-    #ow_fit  = pysr.PySRRegressor()
+    high_fit = pysr.PySRRegressor()
+    low_fit  = pysr.PySRRegressor()
 
 
-    #high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
-    #high_fit = high_fit.from_file(run_directory="E:/410SS DATA/FLIR CAL - Realigned/fits/High/20260320_135008_kWsA92", model_selection='best')
-    #low_fit = low_fit.from_file(run_directory="E:/410SS DATA/FLIR CAL - Realigned/fits/Low/20260320_135548_TvF4W1", model_selection='best')
+    high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
+    low_fit = low_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
 
     vali_data = []
     for data in validation_data:

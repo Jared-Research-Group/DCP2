@@ -4,22 +4,15 @@ import os
 import matplotlib.pyplot as plt
 from datetime import datetime
 import math
-import pysr
-import json
 import sys
 import tkinter as tk
-import sympy
 
 # Add build directory to path so compiled Cython modules can be found
 build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-310')
 if build_dir not in sys.path:
     sys.path.insert(0, build_dir)
 
-from tkinter import simpledialog
-from data_manipulation import selectFolder, printProgressBar
-
-high_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
-low_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
+from data_manipulation import selectFolder, printProgressBar, get_FLIR_model
 
 def convert_to_8bit(image, global_min, global_max):
     image_normalized = (image - global_min) / (global_max - global_min)
@@ -96,7 +89,7 @@ def find_global_min_max(input_folder):
         npy_file_path = os.path.join(input_folder, npy_file)
         try:
             data = np.load(npy_file_path, allow_pickle=True)
-            image = data.item()['frame']
+            image = np.int64(data.item()['frame'])
             global_min = min(global_min, image.min())
             global_max = max(global_max, image.max())
 
@@ -119,11 +112,10 @@ def intensity_to_temperature(fr, model):
 
 def npy_to_video(input_folder, output_file, output_frames_folder, forceUpdate=False, fps=10, width=640, height=480):
 
-    print(1)
     if not os.access(output_file, os.R_OK) or forceUpdate:
         global_min, global_max = find_global_min_max(input_folder)
 
-        cal_curve = get_model(input_folder)
+        cal_curve = get_FLIR_model(input_folder)
         
         # Extract timestamps and sort files
         npy_files_with_timestamps = []
@@ -153,7 +145,7 @@ def npy_to_video(input_folder, output_file, output_frames_folder, forceUpdate=Fa
             npy_file_path = os.path.join(input_folder, npy_file)
             try:
                 data = np.load(npy_file_path, allow_pickle=True)
-                image = data.item()['frame']
+                image = np.int64(data.item()['frame'])
 
                 temp_image = intensity_to_temperature(image, cal_curve)
                 
@@ -179,61 +171,6 @@ def npy_to_video(input_folder, output_file, output_frames_folder, forceUpdate=Fa
     else:
         print("FLIR video is already created. (Use forceUpdate bool to create anyway)")
     return
-
-class CaseSelectionDialog(simpledialog.Dialog):
-    def body(self, master):
-        tk.Label(master, text="What temperature range is FLIR data in?").grid(row=0, column=0, sticky="w")
-
-    def buttonbox(self):
-        box = tk.Frame(self)
-
-        tk.Button(box, text='High', width=10, command=self.high).pack(side="left", padx=5, pady=5)
-        tk.Button(box, text='Low', width=10, command=self.low).pack(side="left", padx=5, pady=5)
-        tk.Button(box, text='Cancel', width=10, command=self.cancel).pack(side="left", padx=5, pady=5)
-
-        self.bind("<Return>", self.cancel)
-        self.bind("<Escape>", self.cancel)
-        box.pack()
-
-    def high(self, event=None):
-        self.result = 1
-        self.cancel()
-
-    def low(self, event=None):
-        self.result = 0
-        self.cancel()
-
-def ask_case(parent):
-    dialog = CaseSelectionDialog(parent, title='Case Selection')
-    return dialog.result
-        
-
-def get_model(d_in):
-
-    with open(d_in + '/FLIR_Variables.json', 'r') as json_file:
-        params = json.load(json_file)
-
-    if 'case' in params:
-        case = int(params['case'])
-    else:
-        root = tk.Tk()
-        root.withdraw()
-
-        case = ask_case(root)                   # dialog needs to close after button press. json assignment doesnt work, and need to rewrite file.
-        params["case"] = str(case)
-
-        with open(d_in + '/FLIR_Variables.json', 'w') as json_file:
-            json.dump(params, json_file, indent=2)
-
-    x = sympy.symbols('FLIR_Intensity')
-
-    if case == 1:
-        #print(high_fit.sympy())
-        return sympy.lambdify(x, high_fit.sympy(), modules='numpy')
-    else:
-        #print(low_fit.sympy())
-        return sympy.lambdify(x, low_fit.sympy(), modules='numpy')
-
 
 if __name__ == "__main__":
     import sys
