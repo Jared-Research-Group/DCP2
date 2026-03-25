@@ -1,4 +1,3 @@
-import pickle
 import os
 import pandas as pd
 import numpy as np
@@ -18,8 +17,8 @@ def getTempPickles(dir, temp_type, pix=None):
         temp = row['temp_pix']
         temp = np.array(temp)
 
-        with open(dir + '/temp_data/' + temp_type + '/' + str(row['timestamp']).replace(':', '_') + '.pkl', 'wb') as file:
-            pickle.dump(temp, file)
+        np.savetxt(dir + '/temp_data/' + temp_type + '/' + str(row['timestamp']).replace(':', '_') + '.csv', temp, delimiter=',')
+        print('data saved!\n')
 
 def recursiveTempSelection(entry):
     dir = entry.path
@@ -34,7 +33,8 @@ def recursiveTempSelection(entry):
         os.mkdir(dir + '/temp_data/')
 
     # just RoI
-    getTempPickles(dir, 'roi', pix)
+    if not os.access(dir + '/temp_data/roi', os.R_OK):
+        getTempPickles(dir, 'roi', pix)
 
     pix = []
     for i in range(464):
@@ -42,9 +42,9 @@ def recursiveTempSelection(entry):
         for j in range(348):
             pix[-1].append([i, j])
         
-    print(pix)
     # whole frame
-    getTempPickles(dir, 'full', pix)
+    if not os.access(dir + '/temp_data/full', os.R_OK):
+        getTempPickles(dir, 'full', pix)
 
 if __name__ == '__main__':
     dir = selectFolder()
