@@ -29,7 +29,7 @@ def alignData(dir, forceDataUpdate=False):
     noAlignment = not os.access(dir +'/aligned_data.csv', os.R_OK)              # does aligned_data.csv exist?
 
     if not noAlignment:                                                         # if aligned_data.csv exists, does it contain data from all expected sources?
-        df = pd.read_csv(dir +'/aligned_data.csv')
+        df = pd.read_csv(dir +'/aligned_data.csv', parse_dates=['time'])
 
         incompAlignment = False
         #for c in expected_columns:                                             # program is now general for any combination of data streams. This check would force unnessecary overwrites
@@ -176,6 +176,13 @@ def alignData(dir, forceDataUpdate=False):
                 df[labels[dat][i]] = stream
 
         df = df[df['time'] >= lastStart]        # drop all data before latest datastream start. We do it after alignment because it is easier to drop from a dataframe than individual data streams. Optimizaion to be had here.
+
+        t_rel = []
+        startTime = df.loc[0, 'time']
+        for t in df['time']:
+            t_rel.append(t - startTime)
+
+        df['Relative_Time(s)'] = pd.Series(t_rel)
 
         dfToCsv(df, dir + '/aligned_data.csv')
 
