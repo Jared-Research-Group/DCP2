@@ -29,6 +29,8 @@ def get_framewise_temps(dir, temp_type, pix=None):
 
         frame_dat = frame.item()['frame']
 
+        print(frame_dat.shape)
+
         # horizontal rectangular region of pixels selected
 
         for i in range(len(pix)):

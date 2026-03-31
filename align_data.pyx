@@ -177,10 +177,15 @@ def alignData(dir, forceDataUpdate=False):
 
         df = df[df['time'] >= lastStart]        # drop all data before latest datastream start. We do it after alignment because it is easier to drop from a dataframe than individual data streams. Optimizaion to be had here.
 
+        print(df)
+        df.reset_index(inplace=True)
+        print(df)
+
+
         t_rel = []
         startTime = df.loc[0, 'time']
         for t in df['time']:
-            t_rel.append(t - startTime)
+            t_rel.append((t - startTime)).seconds
 
         df['Relative_Time(s)'] = pd.Series(t_rel)
 

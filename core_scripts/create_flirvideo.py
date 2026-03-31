@@ -110,7 +110,7 @@ def intensity_to_temperature(fr, model):
     return temps
 
 
-def npy_to_video(input_folder, output_file, output_frames_folder, forceUpdate=False, fps=10, width=640, height=480):
+def npy_to_video(input_folder, output_file, output_frames_folder, forceUpdate=False, fps=10, width=464, height=348):
 
     if not os.access(output_file, os.R_OK) or forceUpdate:
         global_min, global_max = find_global_min_max(input_folder)
