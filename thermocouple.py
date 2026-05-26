@@ -11,7 +11,7 @@ from batch_process     import dataSearch
 def getThermocoupleData(d, filename='thermocouple_data.csv'):
 
     print('         Reading thermocouple data...')
-    df = pd.read_csv(d + '/' + filename, encoding='cp1252')         # weird specific encoding required for successful read
+    df = pd.read_csv(d + '/' + filename, encoding='cp1252', parse_dates=['Timestamp'])         # weird specific encoding required for successful read
 
     return df
 

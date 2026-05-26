@@ -12,7 +12,7 @@ pos_z = df['RIst_Z']
 t     = df['RelativeTime']
 
 plt.style.use('_mpl-gallery')
-plt.rcParams['lines.markersize'] = 0.05
+plt.rcParams['lines.markersize'] = 1
 plt.rcParams['figure.constrained_layout.use'] = True
 
 fig1, ax1 = plt.subplots(3,1, sharex=True)
@@ -24,6 +24,11 @@ ax1[0].set_title('Position - x')
 ax1[1].set_title('Position - y')
 ax1[2].set_title('Position - z')
 ax1[2].set_xlabel('Time (s)')
+
+ax1[0].set_xlim(left=13.5, right=14.25)
+ax1[0].set_ylim(top=10)
+
+ax1[1].set_ylim(top=-90)
 
 fig3, ax3 = plt.subplots(subplot_kw={'projection': '3d'})
 ax3.scatter(pos_x, pos_y, pos_z, s = 0.005)

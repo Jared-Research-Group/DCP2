@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import os
 from datetime import datetime
+from derivative import dxdt
 
 # Add build directory to path so compiled Cython modules can be found
 build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-310')
@@ -33,7 +34,7 @@ def readRSI(f, window = 1000, forceDataUpdate = False):
         df.reset_index(inplace=True)
 
     RSI_rate = int(len(df['RelativeTime'])/(df['RelativeTime'][df['RelativeTime'].index.tolist()[-1]] - df['RelativeTime'][df['RelativeTime'].index.tolist()[0]]))
-    window = int(0.25*RSI_rate)
+    window = int(0.01*RSI_rate)
 
     pos_x = df['RIst_X']
     pos_y = df['RIst_Y']
@@ -48,7 +49,7 @@ def readRSI(f, window = 1000, forceDataUpdate = False):
             ti.append(t)
             t += r
             
-        vel_x, vel_y, vel_z, vel_mag = getVelocities(pos_x, pos_y, pos_z, ti, window)
+        vel_x, vel_y, vel_z, vel_mag = getVelocities(pos_x.to_numpy(), pos_y.to_numpy(), pos_z.to_numpy(), np.array(ti), window)
         dfAddColumn(df, vel_x, 'vel_x')
         dfAddColumn(df, vel_y, 'vel_y')
         dfAddColumn(df, vel_z, 'vel_z')
@@ -58,38 +59,63 @@ def readRSI(f, window = 1000, forceDataUpdate = False):
         dfAddColumn(df, ti, 'Interpolated_Time(s)')
         dfToCsv(df, f)
 
-    else:
-        vel_x = df['vel_x']
-        vel_y = df['vel_y']
-        vel_z = df['vel_z']
-        vel_mag = df['vel_mag']
-        ti = df['Interpolated_Time(s)']
+    vel_x = df['vel_x']
+    vel_y = df['vel_y']
+    vel_z = df['vel_z']
+    vel_mag = df['vel_mag']
+    ti = df['Interpolated_Time(s)']
 
     time = []
     for m in df['SystemTime']:
         time.append(datetime.strptime(m, '%Y-%m-%d %H:%M:%S.%f'))
 
-    return (pos_x, pos_y, pos_z), (vel_x, vel_y, vel_z, vel_mag), time, ti, RSI_rate
+    return (pos_x.to_numpy(), pos_y.to_numpy(), pos_z.to_numpy()), (vel_x.to_numpy(), vel_y.to_numpy(), vel_z.to_numpy(), vel_mag.to_numpy()), time, ti, RSI_rate
 
 def getVelocities(x, y, z, t, w):
-    vx = []
-    vy = []
-    vz = []
-    vm = []
+    step = 4
 
-    for i in range(w):
-        vx.append(float('NaN'))
-        vy.append(float('NaN'))
-        vz.append(float('NaN'))
-        vm.append(float('NaN'))
+    #al = [1e-2, 2.5e-2, 5e-2, 7.5e-2, 1e-1, 2.5e-1, 5e-1, 7.5e-1, 1, 2, 3, 4, 5]
+    #al = np.linspace(.5e-3, 1.25e-2, 5)
+    al = [1.25e-2]
+    plt.rc('axes', prop_cycle=plt.cycler(color=['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']))
 
-    for p in range(len(x[w:])):
-        vx.append((x[p+w] - x[p])/(t[p+w] - t[p]))
-        vy.append((y[p+w] - y[p])/(t[p+w] - t[p]))
-        vz.append((z[p+w] - z[p])/(t[p+w] - t[p]))
-        vm.append(math.sqrt(math.pow(vx[-1], 2) + math.pow(vy[-1], 2) + math.pow(vz[-1], 2)))
+    iter=int(1e6)
 
-    return vx, vy, vz, vm
+    for a in al:
+    #a = 1
+        vx = dxdt(x[::step], t[::step], kind='trend_filtered', order=0, alpha=a, max_iter=iter)
+        vx = np.interp(t, t[::step], vx)
+
+        vy = dxdt(y[::step], t[::step], kind='trend_filtered', order=0, alpha=a, max_iter=iter)
+        vy = np.interp(t, t[::step], vy)
+
+        vz = dxdt(z[::step], t[::step], kind='trend_filtered', order=0, alpha=a, max_iter=iter)
+        vz = np.interp(t, t[::step], vz)
+
+        vm = np.sqrt(np.pow(vx, 2) + np.pow(vy, 2) + np.pow(vz, 2))
+
+        plt.plot(t, vm, label=str(a))
+
+    plt.set_cmap('viridis')
+    #plt.ylim(top = 10, bottom = 0)
+    plt.ylim(top = 0.03, bottom = 0)
+    plt.xlim((11,13))
+    plt.legend()
+    plt.show()
+
+    #for i in range(w):
+    #    vx.append(float('NaN'))
+    #    vy.append(float('NaN'))
+    #    vz.append(float('NaN'))
+    #    vm.append(float('NaN'))
+
+    #for p in range(len(x[w:])):
+    #    vx.append((x[p+w] - x[p])/(t[p+w] - t[p]))
+    #    vy.append((y[p+w] - y[p])/(t[p+w] - t[p]))
+    #    vz.append((z[p+w] - z[p])/(t[p+w] - t[p]))
+    #    vm.append(math.sqrt(math.pow(vx[-1], 2) + math.pow(vy[-1], 2) + math.pow(vz[-1], 2)))
+
+    return pd.Series(vx), pd.Series(vy), pd.Series(vz), pd.Series(vm)
 
 def plotPos(pos):
     pos_x = pos[0]

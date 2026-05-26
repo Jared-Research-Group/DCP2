@@ -35,10 +35,7 @@ def batchOperation(e):
     from align_data import alignData
 
     process_script_dir = os.getcwd()
-    #subprocess.run([sys.executable, process_script_dir + '\\create_flirvideo.py', e.path + '\\FLIR', e.path + '\\FLIR.mp4', e.path + '\\FLIR_Frames'], check=True)
-
-    subprocess.run([sys.executable, process_script_dir + '\\Data_Processing.py', e.path], check=True)
-    subprocess.run([sys.executable, process_script_dir + '\\align_data_handler.py', e.path], check=True)
+    subprocess.run([sys.executable, process_script_dir + '\\core_scripts/create_flirvideo.py', e.path + '\\FLIR', e.path + '\\FLIR.mp4', e.path + '\\FLIR_Frames'], check=True)
 
     return
 

@@ -5,7 +5,7 @@ import os
 
 from tkinter import filedialog
 
-def parse_keyence(f):
+def parse_keyence(f, plot=False):
     book = xl.load_workbook(f)
     sheet = book.active
 
@@ -24,10 +24,35 @@ def parse_keyence(f):
 
     x_pos, y_pos = np.meshgrid(x_pos, y_pos)
 
-    fig, ax = plt.subplots(subplot_kw={'projection':'3d'})
-    ax.plot_surface(x_pos, y_pos, profile, rstride=10, cstride=10, cmap='viridis')
-    ax.set_aspect('equal')
+    if plot:
+        fig, ax = plt.subplots(subplot_kw={'projection':'3d'})
+        ax.plot_surface(x_pos, y_pos, profile, rstride=10, cstride=10, cmap='viridis')
+        ax.set_aspect('equal')
 
+        plt.show()
+
+    return profile, x_pos, y_pos
+
+def split_scan(dat):
+    profile, x_pos, y_pos = dat
+
+    uniques, counts = np.unique(profile, return_counts=True)
+    profile -= uniques[np.argmax(counts)]
+
+    grad = np.gradient(profile)
+
+    fig, ax = plt.subplots(subplot_kw={'projection':'3d'})
+    ax.plot_surface(x_pos, y_pos, grad[0], rstride=10, cstride=10, cmap='viridis')
+    ax.set_xlabel('x position')
+    ax.set_ylabel('y position')
+    ax.set_zlabel('height gradient')
+    plt.show()
+
+    fig, ax = plt.subplots(subplot_kw={'projection':'3d'})
+    ax.plot_surface(x_pos, y_pos, grad[1], rstride=10, cstride=10, cmap='viridis')
+    ax.set_xlabel('x position')
+    ax.set_ylabel('y position')
+    ax.set_zlabel('height gradient')
     plt.show()
 
 
@@ -35,4 +60,5 @@ def parse_keyence(f):
 if __name__ == '__main__':
     keyence_excel = filedialog.askopenfilename()
 
-    parse_keyence(keyence_excel)
+    data = parse_keyence(keyence_excel, False)
+    split_scan(data)

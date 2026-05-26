@@ -58,7 +58,8 @@ def getLemboxData(f, n = 1000, forceDataUpdate=False):
 
     abs_time = []
     for t in df['Timestamp']:
-        abs_time.append(datetime.strptime((t[:-4] + ' UTC'), '%Y-%m-%d %H:%M:%S.%f %Z').astimezone(timezone(timedelta(hours=-10))).replace(tzinfo=None))
+        #abs_time.append(datetime.strptime((t[:-4] + ' UTC'), '%Y-%m-%d %H:%M:%S.%f %Z').astimezone(timezone(timedelta(hours=-10))).replace(tzinfo=None))        weird timezone issue (not present in all LEMBOX data?)
+        abs_time.append(datetime.strptime((t[:-4]), '%Y-%m-%d %H:%M:%S.%f'))
 
 
 

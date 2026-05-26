@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import math
 from datetime import datetime
+import cv2
 
 from data_manipulation import selectFolder, printProgressBar, flirConversion, get_FLIR_model
 from batch_process import dataSearch
@@ -111,7 +112,7 @@ def getPixels(dir, numPts=1):
     return pos[-1 * numPts:]
 
 # get list of frame timestamps, selected pixel intensities, paths to frames
-def getFrameData(dir, pix=None):
+def getFrameData(dir, pix=None, printFlag=True):
 
     cdef list pixelIntensity = []
     cdef list framePaths     = []
@@ -147,7 +148,7 @@ def getFrameData(dir, pix=None):
                     p = pix[i][j]
                     pixelIntensity[-1][-1].append(frame_dat[p[1]][p[0]])
 
-        printProgressBar(len(framePaths), numFrames)            # update user on progress
+        if printFlag: printProgressBar(len(framePaths), numFrames)            # update user on progress
         
         return
     
@@ -164,9 +165,13 @@ def getFrameData(dir, pix=None):
     df.sort_values(by=['timestamps'], inplace=True)
     df.reset_index(inplace=True)
 
-    if pix is not None: return df['timestamps'].to_list(), df['i_pix'].to_list(), df['frame_paths'].to_list()
+    timestamps = df['timestamps'].to_list()
+    for i, t in enumerate(timestamps):
+        timestamps[i] = t.to_pydatetime()
 
-    return df['timestamps'].to_list(), df['frame_paths'].to_list()
+    if pix is not None: return timestamps, df['i_pix'].to_list(), df['frame_paths'].to_list()
+
+    return timestamps, df['frame_paths'].to_list()
     
 
 def getTempData(df, dir, sparsity=None):
@@ -280,14 +285,36 @@ def drawTimeSeriesPixelScatter(data, pix, dir):
     ax.scatter(data[0], data[1])
     plt.savefig(os.path.split(dir)[0] + '/visualizations/pixel.png', s=0.5)
 
+def detectEdges(frame, t1, t2):
+    fr = np.load(frame, allow_pickle=True).item()['frame']
+    fr = np.log1p(fr)
+    fr_norm = np.uint8(cv2.normalize(fr, None, 0, 255, cv2.NORM_MINMAX))
+    fr_norm = cv2.cvtColor(fr_norm, cv2.COLOR_GRAY2RGB)
+
+    blur = cv2.GaussianBlur(fr_norm, (5,5), 1.4)
+    edges = cv2.Canny(blur, threshold1=t1, threshold2=t2)
+
+    edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
+    combo = np.zeros(edges.shape)
+    for i in range(len(fr_norm)):
+        for j in range(len(fr_norm[i])):
+
+            combo[i][j] = fr_norm[i][j]
+
+            if np.array_equal(edges[i][j], np.array([255, 255, 255])): combo[i][j] = np.array([0, 0, 255], dtype=np.uint8)
+
+    cv2.imshow('edges', np.uint8(combo))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
 def main():
-    dir = selectFolder()
-    dir += '/FLIR'
+    #dir = selectFolder()
+    #dir += '/FLIR'
 
-    pixel = getPixels(dir, 1)
+    #pixel = getPixels(dir, 1)
 
-    df = getFrameData(pixel, dir)
-    df = getTempData(df, pixel)
+    #df = getFrameData(pixel, dir)
+    #df = getTempData(df, pixel)
 
     #drawTimeAnimation(df, pixel, dir)
     #drawTimeSeriesPixelScatter(df, pixel, dir)
