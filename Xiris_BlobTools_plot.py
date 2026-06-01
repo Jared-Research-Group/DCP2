@@ -18,10 +18,6 @@ def Eccentricity_plot(csv_filename):
 
 
 
-
-
-
-
 def main():
     if len(sys.argv) != 2:
         csv_filename = filedialog.askopenfilename()
