@@ -110,7 +110,7 @@ def slice_stats(slice_df_folder):
         print(stats_df.to_string(index=False))
         stats_df.to_csv(os.path.join(slice_df_folder, 'slice_stats.csv'), mode='a', index=False, header=not os.path.exists(os.path.join(slice_df_folder, 'slice_stats.csv')))
 
-#def FLIR_Video_Slices(slice_df_folder):
+#def FLIR_Video_Slices(csv_filename):
 
     
 
