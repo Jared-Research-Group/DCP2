@@ -233,7 +233,14 @@ def combineData(dir, inclusions, validation=False, force_update=False):
     return (high_data['FLIR_intensity'], high_data['tc_temp(°K)'], high_data['experiment']), ((low_data['FLIR_intensity'], low_data['tc_temp(°K)'], low_data['experiment']))
 
 
-def regress(data, d,  niterations=1000):
+def regress(data, d,  batch_iterations=1000, total_iterations=500000, run_directory=None, **kwargs):
+
+    binary_operators = ['+', '-', '*', '/']
+    unary_operators = ['log', 'neg']
+
+    if 'binary_operators' in kwargs: binary_operators = kwargs['binary_operators']
+    if 'unary_operators'  in kwargs: unary_operators  = kwargs['unary_operators'] 
+
     flir_intensity, tc_temp, temp_regime = data
 
     flir_intensity = pd.DataFrame({'FLIR_Intensity':flir_intensity})
@@ -245,14 +252,24 @@ def regress(data, d,  niterations=1000):
     elif 'Low' in temp_regime[0]:
         model_type = 'Low'
 
-    #model = pysr.PySRRegressor(binary_operators=['+', '*', '^'], unary_operators=['log', 'neg', 'exp'], \
-    #                        niterations=niterations, batching=True, maxsize=30, output_directory=(d + '/fits/' + model_type + '/'), \
-    #                        constraints={'^':(-1,2)})
+    if run_directory is not None:
+        model = pysr.PySRRegressor()
+        model = model.from_file(run_directory, warm_start=True)
 
-    model = pysr.PySRRegressor(binary_operators=['+', '*'], unary_operators=['log', 'neg'], \
-                            niterations=niterations, batching=True, maxsize=30, output_directory=(d + '/fits/' + model_type + '/'))
-    
-    model.fit(flir_intensity, tc_temp)
+        f = open(run_directory + '/iterations.dat', 'r')
+        current_iterations = int(f.read())
+    else:
+        model = pysr.PySRRegressor(binary_operators=binary_operators, unary_operators=unary_operators, \
+            niterations=batch_iterations, batching=True, maxsize=30, output_directory=(d + '/fits/' + model_type + '/'))
+        
+        current_iterations = 0
+
+        while current_iterations < total_iterations:
+            model.fit(flir_intensity, tc_temp)
+
+            current_iterations += model.niterations
+
+        f = open(os.path.split(model.get_equation_file())[0] + 'iterations.dat', 'w')
 
     return model
 
