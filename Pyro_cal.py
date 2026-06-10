@@ -56,7 +56,7 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
 
         # data from 021026, 021126, 022726, and 030326 used different FLIR positions. Because we examine the same set of pixels for each run, we need
         # to store two pixel regions and switch between them based on which measurement we are examining.
-        which_pix = pyr
+        which_pix = 'pyr'
 
         # if we can't find stored pixel position, request it from user
         if not os.access(top_level_dir + '/pix' + which_pix + '.npy', os.R_OK) or reselect_zone:
@@ -91,7 +91,7 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
 
             cal_data[os.path.abspath(fr)] = sum
 
-        df = pd.read_csv(dir + '/aligned_data.csv', parse_dates=['time'])
+        df = pd.read_csv(dir + '/aligned_data.csv')
 
         # add pixel temps to aligned dataset
         for i, fr in enumerate(df['FLIR_frame']):
@@ -107,7 +107,8 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
             start_index = (df['FLIR_frame'] == first_frame).idxmax()
             print(start_index)
 
-            df = df.loc[(df['time'] > df['time'][start_index]) & (df['time'] < (df['time'][start_index] + timedelta(seconds=window_length)))]
+            print(type(df['time'][0]))
+            df = df.loc[(df['time'] > df['time'][start_index]) & (df['time'] < (df['time'][start_index] + window_length))]
             df.reset_index(inplace=True)
 
             # save windowed data to new .csv for later manipulation
@@ -302,24 +303,24 @@ if __name__ == '__main__':
     
     its = 100000
 
-    calibration_datasets = ['data_collection_20260331_145851', 'data_collection_20260331_150208', 'data_collection_20260331_150516', 'data_collection_20260331_150916', 'data_collection_20260331_151325', 'data_collection_20260331_151701', 'data_collection_20260331_152125', 'data_collection_20260331_152423', \
-                            'data_collection_20260331_152825', 'data_collection_20260331_153059', 'data_collection_20260331_153347', 'data_collection_20260331_153853', '180C High', 'data_collection_20260331_154356', 'data_collection_20260331_154938', 'data_collection_20260331_155504']
-    
+    calibration_datasets = ['data_collection_20260331_145851', 'data_collection_20260331_150208', 'data_collection_20260331_150516', 'data_collection_20260331_150916', 'data_collection_20260331_151325',
+                            'data_collection_20260331_151701', 'data_collection_20260331_152125', 'data_collection_20260331_152423', 'data_collection_20260331_152825', 'data_collection_20260331_153059', 
+                            'data_collection_20260331_153347', 'data_collection_20260331_153853', 'data_collection_20260331_154356', 'data_collection_20260331_154938', 'data_collection_20260331_155504',
+                            ]
     #validation_data = ['250C High', '300C High 1', '300C High 2', '300C High 3', 'Warming High', 'burning_kaptan High', '500C High']
     #validation_data = ['230C High']
 
     
     highRegimeData, lowRegimeData = combineData(dir, calibration_datasets)
+    
+    print(highRegimeData)
+    print(lowRegimeData)
 
-    #high_fit = regress(highRegimeData, dir, its)
-    #low_fit = regress(lowRegimeData, dir, its)
-
-    high_fit = pysr.PySRRegressor()
-    low_fit  = pysr.PySRRegressor()
+    fit = regress(highRegimeData, dir, its)
 
 
-    high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
-    low_fit = low_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
+    #high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
+    #low_fit = low_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
 
     '''
     vali_data = []

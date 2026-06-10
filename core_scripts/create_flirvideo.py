@@ -8,7 +8,7 @@ import sys
 import tkinter as tk
 
 # Add build directory to path so compiled Cython modules can be found
-build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-310')
+build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-311')
 if build_dir not in sys.path:
     sys.path.insert(0, build_dir)
 
