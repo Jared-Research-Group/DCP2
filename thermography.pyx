@@ -26,7 +26,7 @@ def getHotFrame(dir):
 
     l = os.listdir(dir)
 
-    hotFrame = 'FLIR-Frame-' + str(int(len(l)/2)) + '.npy'
+    hotFrame = 'FLIR-Frame-' + str(int(3*len(l)/4)) + '.npy'
     hotFrame = dir + '/' + hotFrame
 
     hotFrame = np.load(hotFrame, allow_pickle=True)

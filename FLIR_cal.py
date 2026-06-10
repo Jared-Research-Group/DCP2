@@ -91,7 +91,7 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
 
             cal_data[os.path.abspath(fr)] = sum
 
-        df = pd.read_csv(dir + '/aligned_data.csv', parse_dates=['time'])
+        df = pd.read_csv(dir + '/aligned_data.csv')
 
         # add pixel temps to aligned dataset
         for i, fr in enumerate(df['FLIR_frame']):
@@ -107,7 +107,7 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
             start_index = (df['FLIR_frame'] == first_frame).idxmax()
             print(start_index)
 
-            df = df.loc[(df['time'] > df['time'][start_index]) & (df['time'] < (df['time'][start_index] + timedelta(seconds=window_length)))]
+            df = df.loc[(df['time'] > df['time'][start_index]) & (df['time'] < (df['time'][start_index] + window_length))]
             df.reset_index(inplace=True)
 
             # save windowed data to new .csv for later manipulation
@@ -136,19 +136,21 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
 # requires input arrays nested in tuples, allows for multiple datasets at once
 def plotCalCurve(data, fit=None, vali_data=None):
 
-    plt.figure(layout='constrained')
+    plt.figure(layout='constrained', figsize=[3, 3])
     for i, series in enumerate(data):
         flir_intensity, tc_temp, temp_regime = series
 
         tc_temp -= 273.15        # convert back to °C
-
+        """
         if len(data) == 1:
-            plt.scatter(flir_intensity, tc_temp, color='blue', label='Measured Values')
+            plt.scatter(flir_intensity, tc_temp, color='blue', label='Measured Values', s=20)
         elif (str(temp_regime.iloc[0])[-4:]).strip() == 'High':
-            plt.scatter(flir_intensity, tc_temp, color='blue', label=str('Measured Values (' + (str(temp_regime.iloc[0])[-4:]).strip() +')'))
+            plt.scatter(flir_intensity, tc_temp, color='blue', label=str('Measured Values  (' + (str(temp_regime.iloc[0])[-4:]).strip() +')'), s=20)
         else:
-            plt.scatter(flir_intensity, tc_temp, color='green', label=str('Measured Values (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')'))
+            plt.scatter(flir_intensity, tc_temp, color='#41c62f', label=str('Measured Values  (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')'), s=20, marker='s')
+        """
 
+        """
         if fit is not None:
             series_fit = fit[i]
 
@@ -167,14 +169,33 @@ def plotCalCurve(data, fit=None, vali_data=None):
             fit_vals -= 273.15  # convert back to °C
 
             if len(data) == 1:
-                plt.plot(fit_intensity, fit_vals, color='orange', label=('Calibration Curve: ' + fit_str))
+                plt.plot(fit_intensity, fit_vals, color='orange', label=('Calibration Curve: ' + fit_str), linewidth=4, alpha=.7)
             elif (str(temp_regime.iloc[0])[-4:]).strip() == 'High':
                 #plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve ' + (str(temp_regime.iloc[0])[-4:]).strip()) + ': ' + fit_str))
-                plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')')))
+                plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')')), linewidth=4, alpha=.7)
             else:
                 #plt.plot(fit_intensity, fit_vals, color='purple', label=(str('Calibration Curve ' + (str(temp_regime.iloc[0])[-4:]).strip()) + ': ' + fit_str))
-                plt.plot(fit_intensity, fit_vals, color='purple', label=(str('Calibration Curve (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')')))
+                plt.plot(fit_intensity, fit_vals, color='purple', label=(str('Calibration Curve (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')')), linewidth=4, alpha=.7, ls='-.')
+            """
+            
+    series_fit = fit
 
+    rng = 2**16 - 1
+    fit_intensity = np.linspace(0, 2**16-1, 10000)
+
+    if type(series_fit) == pysr.PySRRegressor:
+        fit_vals = series_fit.predict(fit_intensity.reshape(-1, 1))
+        fit_str = str(series_fit.sympy())
+    else:
+        fit_str = str(series_fit)
+        series_fit = sympy.lambdify(x, series_fit, "numpy")
+        fit_vals = series_fit(fit_intensity)
+
+
+    fit_vals -= 273.15  # convert back to °C
+
+    plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve (High)')), linewidth=4, alpha=.4)  
+            
     if vali_data is not None:
         for i, data in enumerate(vali_data):
             vali_intensity, vali_temp, vali_name = data
@@ -182,20 +203,22 @@ def plotCalCurve(data, fit=None, vali_data=None):
 
             #plt.scatter(vali_intensity, vali_temp, label='Validation Curve ' + str(i), s=0.05)
             if i == 0:
-                plt.scatter(vali_intensity, vali_temp, label='Validation Curves', s=0.05)
+                plt.scatter(vali_intensity, vali_temp, label='Validation Curves', s=0.075)
             else:
-                plt.scatter(vali_intensity, vali_temp, label='_Validation Curve', s=0.05)
+                plt.scatter(vali_intensity, vali_temp, label='_Validation Curve', s=0.075)
     
     if len(data) > 1 or fit is not None or vali_data is not None:
-        leg = plt.legend(fontsize=30)
+        leg = plt.legend(fontsize=8)
         for l in leg.legend_handles:
             l._sizes = [80]
-    plt.xlabel('FLIR Raw Intensity '  + r'Value [0:$2^{16}-1$]', fontsize=60)
-    plt.ylabel('Thermocouple\nTemperature (°C)', fontsize=60)
-    plt.xticks(fontsize=40)
-    plt.yticks(fontsize=40)
+    plt.xlabel('FLIR Raw Intensity '  + r'Value [0:$2^{16}-1$]', fontsize=8)
+    plt.ylabel('Thermocouple\nTemperature (°C)', fontsize=8)
+    plt.xticks(fontsize=8)
+    plt.yticks(fontsize=8)
 
-    plt.ylim(-150, 1150)
+    plt.ylim(-150, 1100)
+    #plt.ylim(0, 600)
+    #plt.xlim(0, 40000)
     plt.show()
 
     return
@@ -323,12 +346,12 @@ if __name__ == '__main__':
     
     dir = selectFolder()
     
-    its = 100000
+    its = 5000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
     
-    validation_data = ['250C High', '300C High 1', '300C High 2', '300C High 3', 'Warming High', 'burning_kaptan High', '500C High']
+    validation_data = ['250C High', '300C High 1', '300C High 2', '300C High 3', '500C High']
     #validation_data = ['230C High']
 
     
@@ -340,8 +363,16 @@ if __name__ == '__main__':
     # read calibration curves from saved files
     high_fit = pysr.PySRRegressor()
     low_fit  = pysr.PySRRegressor()
-    high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
-    low_fit = low_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
+    high_fit = high_fit.from_file(run_directory="D:/grad data/new_flir/fits/High/20260610_132656_8PN2bA", warm_start=True)
+    print(high_fit.get_equation_file())
+    high_fit.fit(pd.DataFrame({'FLIR_Intensity':highRegimeData[0]}), pd.DataFrame({'Thermocouple_Temperature(°K)':highRegimeData[1]}))
+    low_fit = low_fit.from_file(run_directory="D:/grad data/new_flir/fits/Low/20260609_051032_KpBFxo", model_selection='best')
+    #high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
+    #low_fit = low_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
+    
+    print('High Fit', high_fit.sympy())
+    print('Low Fit', low_fit.sympy())
+    print()
 
     vali_data = []
     for data in validation_data:
@@ -352,7 +383,10 @@ if __name__ == '__main__':
     #print(vali_data)
 
 
-    plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit), vali_data)
+    #plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit), vali_data)
+        
+    plotCalCurve((highRegimeData, lowRegimeData), (high_fit), vali_data)
+    #plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit))
 
     '''
     high_fit = pysr.PySRRegressor()
