@@ -258,41 +258,53 @@ def combineData(dir, inclusions, validation=False, force_update=False):
 
 def regress(data, d,  batch_iterations=1000, total_iterations=500000, run_directory=None, **kwargs):
 
+    # allow arbitrary modification of operators via kwargs
     binary_operators = ['+', '-', '*', '/']
     unary_operators = ['log', 'neg']
 
     if 'binary_operators' in kwargs: binary_operators = kwargs['binary_operators']
     if 'unary_operators'  in kwargs: unary_operators  = kwargs['unary_operators'] 
 
+    # unpack data
     flir_intensity, tc_temp, temp_regime = data
 
+    # data must be formatted as pd.Dataframe for regression
     flir_intensity = pd.DataFrame({'FLIR_Intensity':flir_intensity})
     tc_temp = pd.DataFrame({'Thermocouple_Temperature(°K)':tc_temp})
 
+    # determine FLIR measurement range for output directory naming. This should be moved outside this function
     model_type = ''
     if 'High' in temp_regime[0]:
         model_type = 'High'
     elif 'Low' in temp_regime[0]:
         model_type = 'Low'
 
+    # if we passed an existing run history as an arg, then load in this run history.
     if run_directory is not None:
         model = pysr.PySRRegressor()
-        model = model.from_file(run_directory, warm_start=True)
+        model = model.from_file(run_directory, warm_start=True) # warm_start allows us to pick up regression from where we left off
 
-        f = open(run_directory + '/iterations.dat', 'r')
-        current_iterations = int(f.read())
+        # read the number of iterations that have been performed on this regressor object previously.
+        with open(run_directory + '/iterations.dat', 'r') as f:
+            current_iterations = int(f.read())
+
+    # if no run directory is passed, start a new regressor
     else:
         model = pysr.PySRRegressor(binary_operators=binary_operators, unary_operators=unary_operators, \
-            niterations=batch_iterations, batching=True, maxsize=30, output_directory=(d + '/fits/' + model_type + '/'))
+            niterations=batch_iterations, batching=True, maxsize=30, output_directory=(d + '/fits/' + model_type + '/'), \
+            parallelism='multiprocessing')
         
         current_iterations = 0
 
-        while current_iterations < total_iterations:
-            model.fit(flir_intensity, tc_temp)
+    # while regression is not complete, continue running short regression batches
+    while current_iterations < total_iterations:
 
-            current_iterations += model.niterations
 
-        f = open(os.path.split(model.get_equation_file())[0] + 'iterations.dat', 'w')
+        model.fit(flir_intensity, tc_temp)
+        current_iterations += model.niterations
+
+    # store total iterations run
+    f = open(os.path.split(model.get_equation_file())[0] + 'iterations.dat', 'w')
 
     return model
 
