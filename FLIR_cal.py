@@ -279,20 +279,28 @@ def regress(data, d,  batch_iterations=1000, total_iterations=500000, run_direct
         model = pysr.PySRRegressor()
         model = model.from_file(run_directory, warm_start=True)
 
-        f = open(run_directory + '/iterations.dat', 'r')
+        f = open(model.output_directory + '/iterations.dat', 'r')
         current_iterations = int(f.read())
     else:
         model = pysr.PySRRegressor(binary_operators=binary_operators, unary_operators=unary_operators, \
-            niterations=batch_iterations, batching=True, maxsize=30, output_directory=(d + '/fits/' + model_type + '/'))
+            niterations=batch_iterations, batching=True, maxsize=30, output_directory=(d + '/fits/' + model_type + '/'), warm_start=True)
         
         current_iterations = 0
-
-        while current_iterations < total_iterations:
-            model.fit(flir_intensity, tc_temp)
+        
+    f = open(model.output_directory + '/iterations.dat', 'w')
+    while current_iterations < total_iterations:
+        try:
+            print('Current iterations: ', current_iterations)
+            m = model.fit(flir_intensity, tc_temp)
 
             current_iterations += model.niterations
-
-        f = open(os.path.split(model.get_equation_file())[0] + 'iterations.dat', 'w')
+        
+        # this didn't work. is f.write() doing what you think?
+        except KeyboardInterrupt:
+            f.write(str(current_iterations))
+            os.exit()
+    
+    f.write('finished')
 
     return model
 
@@ -346,7 +354,7 @@ if __name__ == '__main__':
     
     dir = selectFolder()
     
-    its = 5000
+    its = 500000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
@@ -357,16 +365,16 @@ if __name__ == '__main__':
     
     highRegimeData, lowRegimeData = combineData(dir, calibration_datasets)
 
-    #high_fit = regress(highRegimeData, dir, its)
+    high_fit = regress(highRegimeData, dir, total_iterations=its)
     #low_fit = regress(lowRegimeData, dir, its)
 
     # read calibration curves from saved files
-    high_fit = pysr.PySRRegressor()
-    low_fit  = pysr.PySRRegressor()
-    high_fit = high_fit.from_file(run_directory="D:/grad data/new_flir/fits/High/20260610_132656_8PN2bA", warm_start=True)
-    print(high_fit.get_equation_file())
-    high_fit.fit(pd.DataFrame({'FLIR_Intensity':highRegimeData[0]}), pd.DataFrame({'Thermocouple_Temperature(°K)':highRegimeData[1]}))
-    low_fit = low_fit.from_file(run_directory="D:/grad data/new_flir/fits/Low/20260609_051032_KpBFxo", model_selection='best')
+    #high_fit = pysr.PySRRegressor()
+    #low_fit  = pysr.PySRRegressor()
+    #high_fit = high_fit.from_file(run_directory="D:/grad data/new_flir/fits/High/20260610_132656_8PN2bA", warm_start=True)
+    #print(high_fit.get_equation_file())
+    #high_fit.fit(pd.DataFrame({'FLIR_Intensity':highRegimeData[0]}), pd.DataFrame({'Thermocouple_Temperature(°K)':highRegimeData[1]}))
+    #low_fit = low_fit.from_file(run_directory="D:/grad data/new_flir/fits/Low/20260609_051032_KpBFxo", model_selection='best')
     #high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
     #low_fit = low_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
     
