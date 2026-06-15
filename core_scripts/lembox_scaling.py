@@ -9,9 +9,9 @@ build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 if build_dir not in sys.path:
     sys.path.insert(0, build_dir)
 
-from data_manipulation import csvHasColumn, selectFolder
+from data_manipulation import selectFolder
 
-def scaleLembox(dir):
+def scale_lembox(dir, save_cols=['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Current(A)']):
 
     dir = pathlib.Path(dir)
 
@@ -68,7 +68,6 @@ def scaleLembox(dir):
     df['Scaled_Voltage(V)'] = df['Voltage(V)'] * 10
     df['Scaled_Current(A)'] = df['Current(A)'] * 100
 
-    save_cols = ['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Current(A)']
     df = df[save_cols]
 
     # Save back to the same file

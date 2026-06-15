@@ -1,20 +1,35 @@
 import os
 import sys
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import wave
 
-def csv_to_wav(csv_filename, wav_filename=None, sampling_rate=48000):
+def csv_to_wav(dir, sampling_rate=48000):
+
+    # setup input/output locations
+    dir = Path(dir)
+
+    # create safe raw data folder and store original data there
+    if not os.access(dir / 'raw_data', os.R_OK):
+        os.mkdir(dir / 'raw_data')
+
+    if wav_filename is None: wav_filename = 'microphone_data.wav'
+    csv_filename = dir / 'raw_data' / 'microphone_data.csv'
+
+    os.replace(dir / csv_filename.name, csv_filename)
 
     print(f"Reading {csv_filename}...")
     try:
         # Try reading with one header row skipped (in case there's extra info)
         df = pd.read_csv(csv_filename, skiprows=1, low_memory=False)
         print(f"Columns found (skiprows=1): {df.columns.tolist()}")
+
         if 'Amplitude' not in df.columns:
             # If 'Amplitude' isn't found, try reading the CSV normally.
             df = pd.read_csv(csv_filename, low_memory=False)
             print(f"Retrying with all rows: {df.columns.tolist()}")
+
     except Exception as e:
         print(f"Error reading CSV: {e}")
         return
@@ -37,11 +52,7 @@ def csv_to_wav(csv_filename, wav_filename=None, sampling_rate=48000):
             audio_data = audio_data / max_amplitude * 0.9
         
         # Convert the normalized data to 16-bit integers.
-        audio_data_int16 = (audio_data * 32767).astype(np.int16)
-        
-        # Generate output filename if not provided.
-        if wav_filename is None:
-            wav_filename = os.path.splitext(csv_filename)[0] + '.wav'
+        audio_data_int16 = (audio_data * (2**15 - 1)).astype(np.int16)
         
         # Save the WAV file using Python's wave module.
         print(f"\nSaving to {wav_filename}...")

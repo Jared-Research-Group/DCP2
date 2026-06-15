@@ -1,5 +1,6 @@
+import os
+from pathlib import Path
 import pandas as pd
-from datetime import datetime
 
 import xml.etree.ElementTree as ET
 
@@ -55,7 +56,17 @@ def parse_robot_message(line):
         print(f"Error parsing line: {e}")
         return None
 
-def convert_robot_data_to_csv(input_file, output_file):
+def convert_robot_data_to_csv(dir):
+
+    dir = Path(dir)
+    if not os.access(dir / 'raw_data', os.R_OK):
+        os.mkdir(dir / 'raw_data')
+
+    output_file = dir / 'robot_data.csv'
+    input_file = dir / 'raw_data' / 'robot_data.txt'
+    
+    os.replace(dir / 'robot_data.txt', input_file)
+
     data_list = []
     
     # Read and parse the input file
@@ -84,6 +95,7 @@ def convert_robot_data_to_csv(input_file, output_file):
         
         df.to_csv(output_file, index=False)
         print(f"Data successfully written to {output_file}")
+
     else:
         print("No data was parsed")
 

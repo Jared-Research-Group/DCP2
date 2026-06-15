@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 import os
+from pathlib import Path
+import shutil
 import matplotlib.pyplot as plt
 from datetime import datetime
 import math
@@ -110,7 +112,25 @@ def intensity_to_temperature(fr, model):
     return temps
 
 
-def npy_to_video(input_folder, output_file, output_frames_folder, forceUpdate=False, fps=10, width=464, height=348):
+def npy_to_video(dir, forceUpdate=False, fps=10, width=464, height=348, **kwargs):
+
+    dir = Path(dir)
+    if not os.access(dir / 'raw_data', os.R_OK):
+        os.mkdir(dir / 'raw_data')
+
+    input_folder = dir / 'raw_data' / 'FLIR'
+    output_file = dir / 'FLIR.mp4'
+    output_frames_folder = dir/ 'FLIR_Frames'
+
+    # are we ever going to use these?
+    if 'input_folder' in kwargs:
+        input_folder = kwargs['input_folder']
+    if 'output_file' in kwargs:
+        output_file = kwargs['output_file']
+    if 'output_frames_folder' in kwargs:
+        output_frames_folder = kwargs['output_frames_folder']
+
+    shutil.move(dir / 'FLIR', input_folder)
 
     if not os.access(output_file, os.R_OK) or forceUpdate:
         global_min, global_max = find_global_min_max(input_folder)
