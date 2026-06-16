@@ -5,7 +5,14 @@ import pandas as pd
 import numpy as np
 import wave
 
-def csv_to_wav(dir, sampling_rate=48000):
+from core_scripts.helper_functions import selectFolder
+
+# TODO: add kwargs for modification of default file names
+def csv_to_wav(dir, sampling_rate=48000, **kwargs):
+
+    """
+        Convert raw microphone *.csv to *.wav file
+    """
 
     # setup input/output locations
     dir = Path(dir)
@@ -14,10 +21,12 @@ def csv_to_wav(dir, sampling_rate=48000):
     if not os.access(dir / 'raw_data', os.R_OK):
         os.mkdir(dir / 'raw_data')
 
-    if wav_filename is None: wav_filename = 'microphone_data.wav'
-    csv_filename = dir / 'raw_data' / 'microphone_data.csv'
+    wav_filename = dir / 'microphone_data.wav'
+    if 'wav_filename' in kwargs: wav_filename = kwargs['wav_filename']
 
-    os.replace(dir / csv_filename.name, csv_filename)
+    csv_filename = dir / 'raw_data' / 'microphone_data__raw.csv'
+
+    os.replace(dir / 'microphone_data.csv', csv_filename)
 
     print(f"Reading {csv_filename}...")
     try:
@@ -56,7 +65,7 @@ def csv_to_wav(dir, sampling_rate=48000):
         
         # Save the WAV file using Python's wave module.
         print(f"\nSaving to {wav_filename}...")
-        with wave.open(wav_filename, 'wb') as wav_file:
+        with wave.open(str(wav_filename), 'wb') as wav_file:
             wav_file.setnchannels(1)   # Mono
             wav_file.setsampwidth(2)    # 2 bytes per sample for 16-bit
             wav_file.setframerate(sampling_rate)
@@ -68,19 +77,28 @@ def csv_to_wav(dir, sampling_rate=48000):
         print(f"Error during conversion for {csv_filename}: {e}")
         return
 
-def main():
-    if len(sys.argv) != 2:
-        print("Usage: python audio_conversion.py <input_csv_file>")
-        sys.exit(1)
-    
-    # Get input file path from command line argument
-    csv_file = sys.argv[1]
-    
-    # Generate output WAV filename in same directory as input
-    output_wav = os.path.splitext(csv_file)[0] + '.wav'
-    
-    # Process the file
-    csv_to_wav(csv_file, wav_filename=output_wav, sampling_rate=48000)
+if __name__ == '__main__':
 
-if __name__ == "__main__":
-    main()
+    if len(sys.argv) == 3:
+
+        csv_file = sys.argv[1]
+        output_wav = sys.argv[2]
+
+        csv_to_wav(csv_file, wav_filename=output_wav)
+
+    elif len(sys.argv) == 2:
+
+        # Get input file path from command line argument
+        csv_file = sys.argv[1]
+        
+        # Generate output WAV filename in same directory as input
+        output_wav = os.path.splitext(csv_file)[0] + '.wav'
+        
+        # Process the file
+        csv_to_wav(csv_file, wav_filename=output_wav)
+
+    else:
+
+        dir = selectFolder()
+        csv_to_wav(dir)
+    

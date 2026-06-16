@@ -5,16 +5,10 @@ from pathlib import Path
 import shutil
 import matplotlib.pyplot as plt
 from datetime import datetime
-import math
 import sys
-import tkinter as tk
+from tqdm import tqdm
 
-# Add build directory to path so compiled Cython modules can be found
-build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-311')
-if build_dir not in sys.path:
-    sys.path.insert(0, build_dir)
-
-from data_manipulation import selectFolder, printProgressBar, get_FLIR_model
+from core_scripts.helper_functions import selectFolder, get_FLIR_model
 
 def convert_to_8bit(image, global_min, global_max):
     image_normalized = (image - global_min) / (global_max - global_min)
@@ -87,15 +81,13 @@ def find_global_min_max(input_folder):
 
     print('Finding global min/max...')
 
-    for i, npy_file in enumerate(npy_files):
+    for npy_file in tqdm(npy_files):
         npy_file_path = os.path.join(input_folder, npy_file)
         try:
             data = np.load(npy_file_path, allow_pickle=True)
             image = np.int64(data.item()['frame'])
             global_min = min(global_min, image.min())
             global_max = max(global_max, image.max())
-
-            printProgressBar(i, len(npy_files))
 
         except Exception as e:
             print(f"Skipping {npy_file}: {e}")
@@ -112,13 +104,13 @@ def intensity_to_temperature(fr, model):
     return temps
 
 
-def npy_to_video(dir, forceUpdate=False, fps=10, width=464, height=348, **kwargs):
+def npy_to_video(dir, forceUpdate=False, fps=30, width=464, height=348, **kwargs):
 
     dir = Path(dir)
     if not os.access(dir / 'raw_data', os.R_OK):
         os.mkdir(dir / 'raw_data')
 
-    input_folder = dir / 'raw_data' / 'FLIR'
+    input_folder = dir / 'raw_data' / 'FLIR__raw'
     output_file = dir / 'FLIR.mp4'
     output_frames_folder = dir/ 'FLIR_Frames'
 
@@ -161,7 +153,7 @@ def npy_to_video(dir, forceUpdate=False, fps=10, width=464, height=348, **kwargs
         print('\nGenerating FLIR Video...')
 
         # Process frames
-        for i, (npy_file, timestamp) in enumerate(npy_files_with_timestamps):
+        for (npy_file, timestamp) in tqdm(npy_files_with_timestamps):
             npy_file_path = os.path.join(input_folder, npy_file)
             try:
                 data = np.load(npy_file_path, allow_pickle=True)
@@ -180,8 +172,6 @@ def npy_to_video(dir, forceUpdate=False, fps=10, width=464, height=348, **kwargs
                 out.write(final_image)
                 frame_filename = os.path.join(output_frames_folder, f"{os.path.splitext(npy_file)[0]}.png")
                 cv2.imwrite(frame_filename, final_image)
-
-                printProgressBar(i, len(npy_files_with_timestamps))
                 
             except Exception as e:
                 print(f"\nError processing {npy_file}: {e}")
@@ -197,9 +187,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 4:
         dir = selectFolder()
 
-        input_folder = dir + '/FLIR'
-        output_video = dir + '/FLIR.mp4'
-        output_frames = dir + '/FLIR_Frames'
+        npy_to_video(dir, True)
     
     else:
 
@@ -207,5 +195,5 @@ if __name__ == "__main__":
         input_folder = sys.argv[1]
         output_video = sys.argv[2]
         output_frames = sys.argv[3]
-    
-    npy_to_video(input_folder, output_video, output_frames, True)
+
+        npy_to_video(Path(input_folder).parent[0], forceUpdate=True, input_folder=input_folder, output_video=output_video, output_Frames=output_frames)

@@ -4,20 +4,11 @@ from pathlib import Path
 from tkinter import filedialog
 import tkinter as tk
 
+from core_scripts.helper_functions import selectFolder
 from core_scripts.lembox_scaling import scale_lembox
 from core_scripts.robotdata_parsing import convert_robot_data_to_csv
 from core_scripts.audio_conversion import csv_to_wav
 from core_scripts.create_flirvideo import npy_to_video
-
-def select_folder():
-    """Open a folder selection dialog and return the selected path"""
-    root = tk.Tk()
-    root.withdraw()  # Hide the main window
-    folder_path = filedialog.askdirectory(
-        title='Select Data Collection Folder',
-        initialdir=os.path.expanduser('~')  # Start in user's home directory
-    )
-    return folder_path
 
 def process_data_folder(folder_path):
     """Process different types of data files in the given folder using appropriate scripts."""
@@ -29,10 +20,10 @@ def process_data_folder(folder_path):
         'microphone_data.csv': csv_to_wav,
         'robot_data.txt': convert_robot_data_to_csv,
         'lembox_data.csv': scale_lembox,
-        'FLIR/': npy_to_video
+        'FLIR': npy_to_video
     }
 
-    if not os.access(folder / 'raw_data'):
+    if not os.access(folder / 'raw_data', os.R_OK):
         os.mkdir(folder / 'raw_data')
     
     # Process regular files
@@ -42,20 +33,20 @@ def process_data_folder(folder_path):
         if name in processing_rules:
             func = processing_rules[name]
             
-            print(f"\nProcessing {file_path} with {func.name}")
+            print(f"\nProcessing {file_path} with {func.__name__}")
 
             try:
                 func(folder)
                     
             except Exception as e:
-                print(f"Error running {func.name}: {e}")
+                print(f"Error running {func.__name__}: {e}")
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
         folder_path = sys.argv[1]
     else:
         print("Please select the data collection folder...")
-        folder_path = select_folder()
+        folder_path = selectFolder()
     
     if not folder_path:
         print("No folder selected. Exiting...")

@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 
-from data_manipulation import selectFolder
+from core_scripts.helper_functions import selectFolder
 
 def dataSearch(f, func, printFlag=True, id='data_collection_', id_atFront=True):
     found_entities = []
@@ -18,9 +18,6 @@ def dataSearch(f, func, printFlag=True, id='data_collection_', id_atFront=True):
                     if printFlag: print('Found target ' + entry.path)
                     func(entry)
                     found_entities.append(entry.path)
-                #elif entry.name.startswith('Layer'):
-                    #if count < complete: count, complete = dataSearch(entry.path, func, count, complete)
-                    #count += 1
                 elif entry.is_dir():
                     subsearch_discoveries = dataSearch(entry.path, func, printFlag, id, id_atFront)
                 
@@ -39,11 +36,9 @@ def batchOperation(e):
 
     return
 
-def main():
+if __name__ == '__main__':
+
+    from data_preprocessing import process_data_folder
 
     parent = selectFolder()
-
-    dataSearch(parent, batchOperation)
-
-if __name__ == '__main__':
-    main()
+    dataSearch(parent, process_data_folder)

@@ -1,8 +1,11 @@
 import os
+import sys
 from pathlib import Path
 import pandas as pd
 
 import xml.etree.ElementTree as ET
+
+from core_scripts.helper_functions import selectFolder
 
 def extract_xml_data(element, prefix=''):
     """Recursively extract all data from XML elements"""
@@ -56,14 +59,19 @@ def parse_robot_message(line):
         print(f"Error parsing line: {e}")
         return None
 
+# TODO: add kwarg functionality to modify default filenames
 def convert_robot_data_to_csv(dir):
+
+    """ 
+        Convert raw robot data *.txt file to *.csv
+    """
 
     dir = Path(dir)
     if not os.access(dir / 'raw_data', os.R_OK):
         os.mkdir(dir / 'raw_data')
 
     output_file = dir / 'robot_data.csv'
-    input_file = dir / 'raw_data' / 'robot_data.txt'
+    input_file = dir / 'raw_data' / 'robot_data__raw.txt'
     
     os.replace(dir / 'robot_data.txt', input_file)
 
@@ -100,23 +108,11 @@ def convert_robot_data_to_csv(dir):
         print("No data was parsed")
 
 if __name__ == "__main__":
-    import sys
-    import os
-    
-    # Get the directory where the script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    if len(sys.argv) == 3:
-        # Make paths relative to script directory if they're not absolute
-        input_file = os.path.join(script_dir, sys.argv[1]) if not os.path.isabs(sys.argv[1]) else sys.argv[1]
-        output_file = os.path.join(script_dir, sys.argv[2]) if not os.path.isabs(sys.argv[2]) else sys.argv[2]
-    else:
-        input_file = os.path.join(script_dir, "robot_data.txt")
-        output_file = os.path.join(script_dir, "robot_data_parsed.csv")
-    
-    # Convert paths to proper format
-    input_file = os.path.normpath(input_file)
-    output_file = os.path.normpath(output_file)
-    
-    print(f"Attempting to read from: {input_file}")
-    convert_robot_data_to_csv(input_file, output_file)
+        
+        if len(sys.argv) == 2:
+            dir = sys.argv[1]
+
+        else:
+            dir = selectFolder()
+
+        convert_robot_data_to_csv(dir)
