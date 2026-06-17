@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 
-from core_scripts.helper_functions import selectFolder
+from helper_functions import selectFolder
 
 def dataSearch(f, func, printFlag=True, id='data_collection_', id_atFront=True):
     found_entities = []

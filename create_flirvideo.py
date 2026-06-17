@@ -8,7 +8,7 @@ from datetime import datetime
 import sys
 from tqdm import tqdm
 
-from core_scripts.helper_functions import selectFolder, get_FLIR_model
+from helper_functions import selectFolder, get_FLIR_model, setup_directory_structure
 
 def convert_to_8bit(image, global_min, global_max):
     image_normalized = (image - global_min) / (global_max - global_min)
@@ -96,33 +96,16 @@ def find_global_min_max(input_folder):
 
 def intensity_to_temperature(fr, model):
 
-    temps = np.zeros(fr.shape)
-
-    for i, row in enumerate(fr):
-        temps[i] = model(row) - 273.15
-
+    temps = model(fr) - 273.15
     return temps
 
-
+# TODO: only read files once. pass read files to get_min_max...
 def npy_to_video(dir, forceUpdate=False, fps=30, width=464, height=348, **kwargs):
 
-    dir = Path(dir)
-    if not os.access(dir / 'raw_data', os.R_OK):
-        os.mkdir(dir / 'raw_data')
+    input_file = 'FLIR'
+    output_files = ['FLIR.mp4', 'FLIR_Frames']
 
-    input_folder = dir / 'raw_data' / 'FLIR__raw'
-    output_file = dir / 'FLIR.mp4'
-    output_frames_folder = dir/ 'FLIR_Frames'
-
-    # are we ever going to use these?
-    if 'input_folder' in kwargs:
-        input_folder = kwargs['input_folder']
-    if 'output_file' in kwargs:
-        output_file = kwargs['output_file']
-    if 'output_frames_folder' in kwargs:
-        output_frames_folder = kwargs['output_frames_folder']
-
-    shutil.move(dir / 'FLIR', input_folder)
+    [input_folder, [output_file, output_frames_folder]] = setup_directory_structure(dir, input_file, output_files, **kwargs)
 
     if not os.access(output_file, os.R_OK) or forceUpdate:
         global_min, global_max = find_global_min_max(input_folder)
@@ -183,17 +166,18 @@ def npy_to_video(dir, forceUpdate=False, fps=30, width=464, height=348, **kwargs
     return
 
 if __name__ == "__main__":
+
+    kwargs = {}
+
     import sys
     if len(sys.argv) != 4:
         dir = selectFolder()
-
-        npy_to_video(dir, True)
     
     else:
 
-        # Usage: python create_flirvideo.py <input_folder> <output_video> <output_frames>
-        input_folder = sys.argv[1]
-        output_video = sys.argv[2]
-        output_frames = sys.argv[3]
+        # Usage: python create_flirvideo.py <parent_dir> ><input_folder> <output_video> <output_frames>
+        dir                    = sys.argv[1]
+        kwargs['input_path']   = sys.argv[2]
+        kwargs['output_paths'] = [path for path in sys.argv[3:]]
 
-        npy_to_video(Path(input_folder).parent[0], forceUpdate=True, input_folder=input_folder, output_video=output_video, output_Frames=output_frames)
+    npy_to_video(dir, forceUpdate=True, **kwargs)

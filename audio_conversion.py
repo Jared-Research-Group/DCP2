@@ -5,28 +5,21 @@ import pandas as pd
 import numpy as np
 import wave
 
-from core_scripts.helper_functions import selectFolder
+from helper_functions import selectFolder, setup_directory_structure
 
 # TODO: add kwargs for modification of default file names
-def csv_to_wav(dir, sampling_rate=48000, **kwargs):
+def csv_to_wav(dir, sampling_rate=48000, save_cols=['Absolute Time', 'Amplitude'], **kwargs):
 
     """
         Convert raw microphone *.csv to *.wav file
     """
 
-    # setup input/output locations
-    dir = Path(dir)
+    # define default input/output file names
+    input_file = 'microphone_data.csv'
+    output_files = ['microphone_data.wav', 'microphone_data__clean.csv']
 
-    # create safe raw data folder and store original data there
-    if not os.access(dir / 'raw_data', os.R_OK):
-        os.mkdir(dir / 'raw_data')
-
-    wav_filename = dir / 'microphone_data.wav'
-    if 'wav_filename' in kwargs: wav_filename = kwargs['wav_filename']
-
-    csv_filename = dir / 'raw_data' / 'microphone_data__raw.csv'
-
-    os.replace(dir / 'microphone_data.csv', csv_filename)
+    # get current data path, paths to store new data
+    [csv_filename, [wav_filename, new_csv]] = setup_directory_structure(dir, input_file, output_files, **kwargs)
 
     print(f"Reading {csv_filename}...")
     try:
@@ -76,29 +69,29 @@ def csv_to_wav(dir, sampling_rate=48000, **kwargs):
     except Exception as e:
         print(f"Error during conversion for {csv_filename}: {e}")
         return
+    
+    df[save_cols].to_csv(new_csv, index=False)
 
 if __name__ == '__main__':
 
-    if len(sys.argv) == 3:
+    kwargs = {}
 
-        csv_file = sys.argv[1]
-        output_wav = sys.argv[2]
-
-        csv_to_wav(csv_file, wav_filename=output_wav)
-
-    elif len(sys.argv) == 2:
-
-        # Get input file path from command line argument
-        csv_file = sys.argv[1]
-        
-        # Generate output WAV filename in same directory as input
-        output_wav = os.path.splitext(csv_file)[0] + '.wav'
-        
-        # Process the file
-        csv_to_wav(csv_file, wav_filename=output_wav)
-
-    else:
-
+    if len(sys.argv) == 1:
         dir = selectFolder()
-        csv_to_wav(dir)
+
+    if len(sys.argv) > 1:
+        dir = sys.argv[1]
+
+    if len(sys.argv) > 2:
+        kwargs['input_file'] = sys.argv[2]
+
+    if len(sys.argv) > 3:
+
+        try:
+            kwargs['output_files'] = [arg for arg in sys.argv[3:5]]
+        except Exception as e:
+            print('Program expected 2 output file paths via command line. Exiting...')
+            sys.exit(1)
+
+    csv_to_wav(dir, **kwargs)
     

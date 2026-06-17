@@ -5,7 +5,7 @@ import pandas as pd
 
 import xml.etree.ElementTree as ET
 
-from core_scripts.helper_functions import selectFolder
+from helper_functions import selectFolder, setup_directory_structure
 
 def extract_xml_data(element, prefix=''):
     """Recursively extract all data from XML elements"""
@@ -60,20 +60,16 @@ def parse_robot_message(line):
         return None
 
 # TODO: add kwarg functionality to modify default filenames
-def convert_robot_data_to_csv(dir):
+def convert_robot_data_to_csv(dir, **kwargs):
 
     """ 
         Convert raw robot data *.txt file to *.csv
     """
 
-    dir = Path(dir)
-    if not os.access(dir / 'raw_data', os.R_OK):
-        os.mkdir(dir / 'raw_data')
-
-    output_file = dir / 'robot_data.csv'
-    input_file = dir / 'raw_data' / 'robot_data__raw.txt'
+    input_filename = 'robot_data.txt'
+    output_filenames = ['robot_data__clean.csv']
     
-    os.replace(dir / 'robot_data.txt', input_file)
+    [input_file, [output_file]] = setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
 
     data_list = []
     
@@ -109,10 +105,18 @@ def convert_robot_data_to_csv(dir):
 
 if __name__ == "__main__":
         
-        if len(sys.argv) == 2:
-            dir = sys.argv[1]
-
-        else:
+        kwargs = {}
+        
+        if len(sys.argv) == 1:
             dir = selectFolder()
 
-        convert_robot_data_to_csv(dir)
+        if len(sys.argv) > 1:
+            dir = sys.argv[1]
+
+        if len(sys.argv) > 2:
+            kwargs['input_path'] = sys.argv[2]
+
+        if len(sys.argv) > 3:
+            kwargs['output_paths'] = [path for path in sys.argv[3:]]
+
+        convert_robot_data_to_csv(dir, **kwargs)

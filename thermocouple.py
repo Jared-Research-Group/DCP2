@@ -4,8 +4,17 @@ import time
 import math
 import os
 import sys
-from data_manipulation import selectFolder
+from helper_functions import selectFolder, setup_directory_structure
 from batch_process     import dataSearch
+
+def preprocess_thermocouple(dir, **kwargs):
+
+    input_filename = 'thermocouple_data.csv'
+    output_filenames = ['thermcouple_data__clean.csv']
+    [input_file, [output_file]] = setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
+
+    data = pd.read_csv(input_file, encoding='cp1252')
+    data.to_csv(output_file, index=False)
 
 # read raw thermocouple data *.csv as pandas DataFrame
 def getThermocoupleData(d, filename='thermocouple_data.csv'):

@@ -9,10 +9,15 @@ import sympy as sp
 import json
 from tqdm import tqdm
 from pathlib import Path
+import shutil
 
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import simpledialog
+
+#############################
+
+# Stats helper functions
 
 # reworking statistics to use pd rolling method
 def applyRollingOperation(data, window_length, op, **args):
@@ -42,6 +47,8 @@ def getRollingSkew(data, sk_scale):
 
 def getRollingKurtosis(data, k_scale):
     return applyRollingOperation(data, k_scale, stats.kurtosis)
+
+#############################
 
 # takes an array and a limit value and returns the start:stop indices that bound  (array's value) > testLimit
 def getStartStop(testVal, testLimit = 1):
@@ -106,6 +113,47 @@ def selectFolder(title='Select Top-Level Folder'):
 
     return path
 
+def setup_directory_structure(dir, input_file, output_files, **kwargs):
+    """ Generalize input/output file/directory setup for initial postprocess steps
+
+    Args:
+        dir (str | pathlib.Path): 'data_collection_' directory
+        input_file (str): name of input file / directory within dir. Overridden to arbitrary location with kwarg 'input_path'
+        output_files (list(str)): list of names of output files / directories within dir (arbitrary number of outputs). Overridden to arbitrary list of paths with kwarg 'output_paths'
+    """
+
+    # setup input/output locations
+    dir = Path(dir)
+
+    # create safe raw data folder and store original data there
+    if not os.access(dir / 'raw_data', os.R_OK):
+        os.mkdir(dir / 'raw_data')
+
+    # define input path location with kwarg override for arbitrary location
+    input_path = dir / input_file
+    if 'input_path' in kwargs: input_path = Path(kwargs['input_path'])
+
+    # define path to which input file is stored safely
+    new_input_name = input_path.stem + '__raw' + input_path.suffix
+
+    new_input_path = dir / 'raw_data' /  new_input_name
+    if 'store_path' in kwargs: new_input_path = Path(kwargs['store_path'])
+
+    # define output path locations with kwarg override for arbitrary location
+    output_paths = [dir / filename for filename in output_files]
+    if 'output_paths' in kwargs: output_paths = [Path(output_path) for output_path in kwargs['output_paths']]
+
+    # make a safe copy of raw input data in the data collection folder
+
+    if not os.access(new_input_path, os.F_OK):
+        shutil.move(input_path, new_input_path)
+
+    return new_input_path, output_paths
+
+#############################
+
+# FLIR helper functions
+
 # data must be np.array!
 def flirConversion(data, model):
     temps = np.zeros(data.shape)
@@ -140,8 +188,11 @@ class CaseSelectionDialog(simpledialog.Dialog):
         self.result = 0
         self.cancel()
 
-def ask_case(parent):
-    dialog = CaseSelectionDialog(parent, title='Case Selection')
+def ask_case():
+    root = tk.Tk()
+    root.withdraw()
+
+    dialog = CaseSelectionDialog(root, title='Case Selection')
     return dialog.result
 
 def get_FLIR_model(d_in):
@@ -155,10 +206,8 @@ def get_FLIR_model(d_in):
     if 'case' in params:
         case = int(params['case'])
     else:
-        root = tk.Tk()
-        root.withdraw()
 
-        case = ask_case(root)                   # dialog needs to close after button press. json assignment doesnt work, and need to rewrite file.
+        case = ask_case()                   # dialog needs to close after button press. json assignment doesnt work, and need to rewrite file.
         params["case"] = str(case)
 
         with open(d_in / 'FLIR_Variables.json', 'w') as json_file:

@@ -4,12 +4,14 @@ from pathlib import Path
 from tkinter import filedialog
 import tkinter as tk
 
-from core_scripts.helper_functions import selectFolder
-from core_scripts.lembox_scaling import scale_lembox
-from core_scripts.robotdata_parsing import convert_robot_data_to_csv
-from core_scripts.audio_conversion import csv_to_wav
-from core_scripts.create_flirvideo import npy_to_video
+from helper_functions  import selectFolder
+from lembox_scaling    import scale_lembox
+from robotdata_parsing import convert_robot_data_to_csv
+from audio_conversion  import csv_to_wav
+from create_flirvideo  import npy_to_video
+from thermocouple      import preprocess_thermocouple
 
+# TODO: check for existance of data in raw_data/, if it exists, then do not overwrite!
 def process_data_folder(folder_path):
     """Process different types of data files in the given folder using appropriate scripts."""
     folder = Path(folder_path)
@@ -20,7 +22,8 @@ def process_data_folder(folder_path):
         'microphone_data.csv': csv_to_wav,
         'robot_data.txt': convert_robot_data_to_csv,
         'lembox_data.csv': scale_lembox,
-        'FLIR': npy_to_video
+        'FLIR': npy_to_video,
+        'thermocouple_data.csv': preprocess_thermocouple
     }
 
     if not os.access(folder / 'raw_data', os.R_OK):

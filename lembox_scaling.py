@@ -4,10 +4,10 @@ import sys
 from pathlib import Path
 import numpy as np
 
-from core_scripts.helper_functions import selectFolder
+from helper_functions import selectFolder, setup_directory_structure
 
 # TODO: add **kwargs to allow for modification of input/output filenames
-def scale_lembox(dir, save_cols=['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Current(A)']):
+def scale_lembox(dir, save_cols=['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Current(A)'], **kwargs):
 
     """ 
     Scales raw lembox_data.csv files to physical voltage and current values. Stores raw data
@@ -20,20 +20,11 @@ def scale_lembox(dir, save_cols=['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Curre
         to ['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Current(A)'].
     """
 
-    dir = Path(dir)
+    input_filename = 'lembox_data.csv'
+    output_filenames = ['lembox_data__clean.csv']
 
-    if not os.access(dir / 'raw_data', os.R_OK):
-        os.mkdir(dir / 'raw_data')
+    [input_file, [output_file]] = setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
 
-    input_file = dir / 'raw_data' / 'lembox_data__raw.csv'
-    output_file = dir / 'lembox_data.csv'
-
-    if not os.access(dir / 'lembox_data.csv', os.R_OK):
-        print(f'Error: {dir / 'lembox_data.csv'} is not a valid lembox data file.\n')
-        sys.exit(1)
-
-    # move raw data file to safe location
-    os.replace(dir / 'lembox_data.csv', input_file)
 
     print(f"Reading and updating file: {input_file}")
 
@@ -84,5 +75,19 @@ def scale_lembox(dir, save_cols=['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Curre
         
 
 if __name__ == '__main__':
-    dir = selectFolder()
-    scale_lembox(dir)
+
+    kwargs = {}
+
+    if len(sys.argv) == 1:
+        dir = selectFolder()
+
+    if len(sys.argv) > 1:
+        dir = sys.argv[1]
+
+    if len(sys.argv) > 2:
+        kwargs['input_path'] = sys.argv[2]
+
+    if len(sys.argv) > 3:
+        kwargs['output_paths'] = [path for path in sys.argv[3:]]
+
+    scale_lembox(dir, **kwargs)
