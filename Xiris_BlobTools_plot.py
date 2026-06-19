@@ -5,15 +5,13 @@ import os
 import sys
 from tkinter             import filedialog
 
-def Eccentricity_plot(csv_filename):
+def Xiris_data_plot(csv_filename):
     df = pd.read_csv(csv_filename,parse_dates = ['Date Time'])
-    Eccentricity = df['Eccentricity']
-    Anisometry = df['Anisometry']
+    Moment2x = df['Moment2x']
+    print(Moment2x)
     Orientation = df['Orientation']
-    Avg_Ecc = np.average(Eccentricity)
-    print(Avg_Ecc)
     time = df['Date Time']
-    plt.plot(time,Eccentricity,'o')
+    plt.plot(time,Moment2x,'o')
     plt.show()
 
 
@@ -23,7 +21,7 @@ def main():
         csv_filename = filedialog.askopenfilename()
     else:
         csv_filename = sys.argv[1]
-    Eccentricity_plot(csv_filename)
+    Xiris_data_plot(csv_filename)
 
 
 

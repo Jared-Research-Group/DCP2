@@ -1,17 +1,20 @@
 
 import sys
 import os
+import cv2 
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import re
 import tkinter as tk
 from tkinter import filedialog
+from moviepy import VideoFileClip
 #Script to slice weld data into slices of desired length and calculate stats for each slice. Stats are saved to a csv file in the same folder as the slices. Stats include average current, voltage, power, velocity, heat input, and slice start/end time.
 #Currently only valid for staright beads in x direction, some work could be done to geranlize for beads in x or y diretions. Change unit lenght variable to change slice length. 
 
 def get_slices(csv_filename):
     df = pd.read_csv(csv_filename)
+    print(csv_filename)
     current = df['Current(A)']
     weld_start_index = current[current > 10].index[0]  #find weld start
     weld_end_index = current[current > 10].index[-1]  #find weld end
@@ -73,10 +76,8 @@ def get_slices(csv_filename):
     return slice_df_folder
 
 
-
-
 def slice_stats(slice_df_folder):
-
+    print(slice_df_folder)
     if slice_df_folder is None or not os.path.exists(slice_df_folder):
         print("No slices found.")
         return
@@ -110,9 +111,46 @@ def slice_stats(slice_df_folder):
         print(stats_df.to_string(index=False))
         stats_df.to_csv(os.path.join(slice_df_folder, 'slice_stats.csv'), mode='a', index=False, header=not os.path.exists(os.path.join(slice_df_folder, 'slice_stats.csv')))
 
-#def FLIR_Video_Slices(csv_filename):
+def FLIR_Video_Slices(FLIR_filename,slice_df_folder):
+    flir_df = pd.read_csv(slice_df_folder + '/slice_stats.csv')
+    start_times = flir_df['Slice Start Time (s)'] * 3 # Multiplied by three to correct for the FLIR video frame rate being 10fps instead of 30. Need to update FLIR video script. 
+    end_times = flir_df['Slice End Time (s)'] * 3 # Multiplied by three to correct for the FLIR video frame rate being 10fps instead of 30. Need to update FLIR video script. 
+    print(start_times)
+    print(end_times)
+    flir_clip = VideoFileClip(FLIR_filename)
+    flir_slice_folder = FLIR_filename[:-4] + '_slices'
+    os.makedirs(flir_slice_folder, exist_ok=True)
+    for i in range(len(start_times)):
+        start = start_times[i]
+        end = end_times[i]
+        sliced_clip = flir_clip.subclipped(start, end)
+        sliced_clip.write_videofile(f"{flir_slice_folder}/slice_{i}.mp4")
+        print(f"Saved slice {i} as {flir_slice_folder}/slice_{i}.mp4")
 
+
+
+def Xiris_Video_Slices(Xiris_filename,slice_df_folder):
+    # Determin start time of Xiris Video
+    xiris_clip = VideoFileClip(Xiris_filename)
     
+    
+
+    xiris_df = pd.read_csv(slice_df_folder + '/slice_stats.csv')
+    start_times = xiris_df['Slice Start Time (s)'] 
+    end_times = xiris_df['Slice End Time (s)'] 
+    print(start_times)
+    print(end_times)
+    xiris_clip = VideoFileClip(Xiris_filename)
+    xiris_slice_folder = Xiris_filename[:-4] + '_slices'
+    os.makedirs(xiris_slice_folder, exist_ok=True)
+    for i in range(len(start_times)):
+        start = start_times[i]
+        end = end_times[i]
+        sliced_clip = xiris_clip.subclipped(start, end)
+        sliced_clip.write_videofile(f"{xiris_slice_folder}/slice_{i}.mp4")
+        print(f"Saved slice {i} as {xiris_slice_folder}/slice_{i}.mp4")
+    
+
 
 def main():
     if len(sys.argv) != 2:
@@ -128,6 +166,9 @@ def main():
 
     slice_stats(csv_filename[:-4] + '_slices')
 
+    FLIR_Video_Slices(csv_filename[:-16]+"FLIR.mp4", csv_filename[:-4] + '_slices')
+
+    #Xiris_Video_Slices(csv_filename[:-16]+"Xiris.avi")
     
 
 
