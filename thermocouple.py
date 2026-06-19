@@ -4,14 +4,17 @@ import time
 import math
 import os
 import sys
-from helper_functions import selectFolder, setup_directory_structure
-from batch_process     import dataSearch
+
+import batch_process
+import helper_functions
+
+logger = helper_functions.setup_logger(__name__)
 
 def preprocess_thermocouple(dir, **kwargs):
 
     input_filename = 'thermocouple_data.csv'
-    output_filenames = ['thermcouple_data__clean.csv']
-    [input_file, [output_file]] = setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
+    output_filenames = ['thermocouple_data__clean.csv']
+    [input_file, [output_file]] = helper_functions.setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
 
     data = pd.read_csv(input_file, encoding='cp1252')
     data.to_csv(output_file, index=False)
@@ -19,7 +22,7 @@ def preprocess_thermocouple(dir, **kwargs):
 # read raw thermocouple data *.csv as pandas DataFrame
 def getThermocoupleData(d, filename='thermocouple_data.csv'):
 
-    print('         Reading thermocouple data...')
+    logger.info('         Reading thermocouple data...')
     df = pd.read_csv(d + '/' + filename, encoding='cp1252', parse_dates=['Timestamp'])         # weird specific encoding required for successful read
 
     return df
@@ -73,7 +76,7 @@ def main():
         d = getThermocoupleData(dir, fname)
         plotThermocouple(d)
     else:
-        dir = selectFolder()
+        dir = helper_functions.selectFolder()
 
         if os.path.split(dir)[1].startswith('data_collection'):
             d = getThermocoupleData(dir)
@@ -86,7 +89,7 @@ def main():
             dat.append(d)
             return
 
-        dataSearch(dir, dataCallback, printFlag=False)
+        batch_process.dataSearch(dir, dataCallback)
         df = dat.pop()
         while dat:
             df = pd.concat([dat.pop(), df], ignore_index=True)

@@ -51,7 +51,7 @@ def get_framewise_temps(dir, temp_type, pix=None):
         return
     
     print('         Reading FLIR Frames...')
-    dataSearch(dir, find_frame_temp, False, 'FLIR-Frame')
+    dataSearch(dir, find_frame_temp, 'FLIR-Frame')
     print('\nData saved!')
 
 

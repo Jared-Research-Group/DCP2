@@ -1,14 +1,14 @@
 import numpy as np
 import cv2
 import os
-from pathlib import Path
-import shutil
 import matplotlib.pyplot as plt
 from datetime import datetime
-import sys
 from tqdm import tqdm
+import shutil
 
-from helper_functions import selectFolder, get_FLIR_model, setup_directory_structure
+import helper_functions
+
+logger = helper_functions.setup_logger(__name__)
 
 def convert_to_8bit(image, global_min, global_max):
     image_normalized = (image - global_min) / (global_max - global_min)
@@ -79,9 +79,9 @@ def find_global_min_max(input_folder):
     global_min = float('inf')
     global_max = float('-inf')
 
-    print('Finding global min/max...')
+    logger.info('Finding global min/max...')
 
-    for npy_file in tqdm(npy_files):
+    for npy_file in tqdm(npy_files, disable= not (__name__ == '__main__')):
         npy_file_path = os.path.join(input_folder, npy_file)
         try:
             data = np.load(npy_file_path, allow_pickle=True)
@@ -90,7 +90,7 @@ def find_global_min_max(input_folder):
             global_max = max(global_max, image.max())
 
         except Exception as e:
-            print(f"Skipping {npy_file}: {e}")
+            logger.error(f"Skipping {npy_file}: {e}")
 
     return global_min, global_max
 
@@ -103,14 +103,16 @@ def intensity_to_temperature(fr, model):
 def npy_to_video(dir, forceUpdate=False, fps=30, width=464, height=348, **kwargs):
 
     input_file = 'FLIR'
-    output_files = ['FLIR.mp4', 'FLIR_Frames']
+    output_files = ['FLIR', 'FLIR.mp4', 'FLIR_Frames']
 
-    [input_folder, [output_file, output_frames_folder]] = setup_directory_structure(dir, input_file, output_files, **kwargs)
+    [input_folder, [untouched_folder, output_file, output_frames_folder]] = helper_functions.setup_directory_structure(dir, input_file, output_files, **kwargs)
+
+    shutil.copytree(input_folder, untouched_folder)
 
     if not os.access(output_file, os.R_OK) or forceUpdate:
         global_min, global_max = find_global_min_max(input_folder)
 
-        cal_curve = get_FLIR_model(input_folder)
+        cal_curve = helper_functions.get_FLIR_model(input_folder)
         
         # Extract timestamps and sort files
         npy_files_with_timestamps = []
@@ -123,7 +125,7 @@ def npy_to_video(dir, forceUpdate=False, fps=30, width=464, height=348, **kwargs
                     if timestamp:
                         npy_files_with_timestamps.append((npy_file, timestamp))
                 except Exception as e:
-                    print(f"Skipping {npy_file}: {e}")
+                    logger.error(f"Skipping {npy_file}: {e}")
         
         # Sort by timestamp
         npy_files_with_timestamps.sort(key=lambda x: datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S.%f'))
@@ -133,10 +135,10 @@ def npy_to_video(dir, forceUpdate=False, fps=30, width=464, height=348, **kwargs
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
 
-        print('\nGenerating FLIR Video...')
+        logger.info('Generating FLIR Video...')
 
         # Process frames
-        for (npy_file, timestamp) in tqdm(npy_files_with_timestamps):
+        for (npy_file, timestamp) in tqdm(npy_files_with_timestamps, disable= not (__name__ == '__main__')):
             npy_file_path = os.path.join(input_folder, npy_file)
             try:
                 data = np.load(npy_file_path, allow_pickle=True)
@@ -157,27 +159,15 @@ def npy_to_video(dir, forceUpdate=False, fps=30, width=464, height=348, **kwargs
                 cv2.imwrite(frame_filename, final_image)
                 
             except Exception as e:
-                print(f"\nError processing {npy_file}: {e}")
+                logger.error(f"\nError processing {npy_file}: {e}")
 
         out.release()
-        print(f"\nVideo saved to {output_file}")
+        logger.info(f"Video saved to {output_file}")
     else:
-        print("FLIR video is already created. (Use forceUpdate bool to create anyway)")
+        logger.info("FLIR video is already created. (Use forceUpdate bool to create anyway)")
     return
 
 if __name__ == "__main__":
 
-    kwargs = {}
-
-    import sys
-    if len(sys.argv) != 4:
-        dir = selectFolder()
-    
-    else:
-
-        # Usage: python create_flirvideo.py <parent_dir> ><input_folder> <output_video> <output_frames>
-        dir                    = sys.argv[1]
-        kwargs['input_path']   = sys.argv[2]
-        kwargs['output_paths'] = [path for path in sys.argv[3:]]
-
+    [dir, kwargs] = helper_functions.setup_kwargs(__name__, 3)
     npy_to_video(dir, forceUpdate=True, **kwargs)

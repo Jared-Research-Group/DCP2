@@ -5,7 +5,7 @@ import cv2
 
 from data_manipulation import get_FLIR_model
 
-from core_scripts.create_flirvideo import convert_to_8bit, apply_inverted_colormap, add_vertical_color_scale_bar
+from create_flirvideo import convert_to_8bit, apply_inverted_colormap, add_vertical_color_scale_bar
 
 if __name__ == "__main__":
     temp_file = filedialog.askopenfilename()

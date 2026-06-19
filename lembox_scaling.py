@@ -1,10 +1,9 @@
 import pandas as pd
-import os
-import sys
-from pathlib import Path
 import numpy as np
 
-from helper_functions import selectFolder, setup_directory_structure
+import helper_functions
+
+logger = helper_functions.setup_logger(__name__)
 
 # TODO: add **kwargs to allow for modification of input/output filenames
 def scale_lembox(dir, save_cols=['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Current(A)'], **kwargs):
@@ -23,10 +22,10 @@ def scale_lembox(dir, save_cols=['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Curre
     input_filename = 'lembox_data.csv'
     output_filenames = ['lembox_data__clean.csv']
 
-    [input_file, [output_file]] = setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
+    [input_file, [output_file]] = helper_functions.setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
 
 
-    print(f"Reading and updating file: {input_file}")
+    logger.info(f"Reading and updating file: {input_file}")
 
     # Check raw data file for 'Samples' string. This indicates that the LEMBOX data recording function has injected a stdout 
     # string into the data file (known issue). To resolve, we remove the lines before & after the bad line, + the bad line itself (minimal data loss)
@@ -71,23 +70,11 @@ def scale_lembox(dir, save_cols=['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Curre
 
     # Save back to the same file
     df.to_csv(output_file, index=False)
-    print(f"Scaling complete. New file created: {output_file}")
+    logger.info(f"Scaling complete. New file created: {output_file}")
         
 
 if __name__ == '__main__':
 
-    kwargs = {}
-
-    if len(sys.argv) == 1:
-        dir = selectFolder()
-
-    if len(sys.argv) > 1:
-        dir = sys.argv[1]
-
-    if len(sys.argv) > 2:
-        kwargs['input_path'] = sys.argv[2]
-
-    if len(sys.argv) > 3:
-        kwargs['output_paths'] = [path for path in sys.argv[3:]]
+    [dir, kwargs] = helper_functions.setup_kwargs(__name__, 1)
 
     scale_lembox(dir, **kwargs)

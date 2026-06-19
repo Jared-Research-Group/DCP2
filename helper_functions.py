@@ -10,10 +10,56 @@ import json
 from tqdm import tqdm
 from pathlib import Path
 import shutil
+import logging
+import sys
 
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import simpledialog
+
+# function to setup a logger object for an arbitrary script. If the script's __name__ == '__main__' (aka if the script is the one the
+# user ran, not an import), then its logger is more verbose in the terminal than loggers for imported modules.
+def setup_logger(name):
+
+    # remove rooot logger handlers (prevent unwanted prints to terminal)
+    logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger().handlers.clear()
+
+    # make/reselect a logger for the considered script
+    logger = logging.getLogger(name)
+
+    # if we haven't set up the logger yet
+    if not logger.handlers:
+
+        # log format
+        formatter = logging.Formatter('%(asctime)s - %(name)20s - %(levelname)s - %(message)s')
+
+        # handler for output to log file. This logger is the most verbose logger possible, capturing all debug statements.
+        file_handler = logging.FileHandler('DCP2.log')
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+
+
+        # handler for output to terminal. This logger is verbose if associated with the file the user is running, otherwise it is less verbose.
+        terminal_handler = logging.StreamHandler()
+
+        if name == '__main__':
+            terminal_handler.setLevel(logging.INFO)
+        else:
+            terminal_handler.setLevel(logging.WARNING)
+
+        terminal_handler.setFormatter(formatter)
+
+        logger.addHandler(terminal_handler)
+        logger.addHandler(file_handler)
+
+    # When the user runs a file, this line places a break in the logfile (makes reading the log file easier).
+    if name == '__main__':
+        logger.info('\n\nNew process starting...\n')
+
+    return logger
+
+logger = setup_logger(__name__)
 
 #############################
 
@@ -113,6 +159,26 @@ def selectFolder(title='Select Top-Level Folder'):
 
     return path
 
+def setup_kwargs(name, num_outputs):
+
+    kwargs = {}
+
+    if len(sys.argv) == 1:
+        dir = selectFolder()
+
+    if len(sys.argv) > 1:
+        dir = sys.argv[1]
+
+    if len(sys.argv) > 2:
+        kwargs['input_path'] = sys.argv[2]
+
+    if len(sys.argv) == 3 + num_outputs:
+        kwargs['output_files'] = [arg for arg in sys.argv[3:3 + num_outputs]]
+    else:
+        raise ValueError (name + ' expected '+ str(num_outputs) + ' output file paths via command line. Exiting...')
+
+    return dir, kwargs
+
 def setup_directory_structure(dir, input_file, output_files, **kwargs):
     """ Generalize input/output file/directory setup for initial postprocess steps
 
@@ -123,24 +189,35 @@ def setup_directory_structure(dir, input_file, output_files, **kwargs):
     """
 
     # setup input/output locations
-    dir = Path(dir)
+    raw_dir = Path(dir)
 
-    # create safe raw data folder and store original data there
-    if not os.access(dir / 'raw_data', os.R_OK):
-        os.mkdir(dir / 'raw_data')
+    if raw_dir.parents[0].name != 'raw_data':
+        logger.critical('Incorrect directory structure. Raw data parent folder must be called \'raw_data\'.')
+        raise FileExistsError
+    
+    if not os.access(raw_dir.parents[1] / 'modified_data', os.R_OK):
+        os.mkdir(raw_dir.parents[1] / 'modified_data')
+
+    modified_dir = raw_dir.parents[1] / 'modified_data' / raw_dir.name
+    if not os.access(modified_dir, os.R_OK):
+        os.mkdir(modified_dir)
 
     # define input path location with kwarg override for arbitrary location
-    input_path = dir / input_file
+    input_path = raw_dir / input_file
     if 'input_path' in kwargs: input_path = Path(kwargs['input_path'])
 
     # define path to which input file is stored safely
-    new_input_name = input_path.stem + '__raw' + input_path.suffix
+    if not input_path.suffix:
+        new_input_name = str(input_path.relative_to(raw_dir).parts[0]) + '__raw' + input_path.suffix
+    
+    else:
+        new_input_name = input_path.stem + '__raw' + input_path.suffix
 
-    new_input_path = dir / 'raw_data' /  new_input_name
+    new_input_path = raw_dir /  new_input_name
     if 'store_path' in kwargs: new_input_path = Path(kwargs['store_path'])
 
     # define output path locations with kwarg override for arbitrary location
-    output_paths = [dir / filename for filename in output_files]
+    output_paths = [modified_dir / filename for filename in output_files]
     if 'output_paths' in kwargs: output_paths = [Path(output_path) for output_path in kwargs['output_paths']]
 
     # make a safe copy of raw input data in the data collection folder
@@ -215,9 +292,21 @@ def get_FLIR_model(d_in):
 
     x = sp.symbols('FLIR_Intensity')
 
-    if case == 1:
-        high_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
-        return sp.lambdify(x, high_fit.sympy(), modules='numpy')
-    else:
-        low_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
-        return sp.lambdify(x, low_fit.sympy(), modules='numpy')
+    logging.getLogger('pysr').setLevel(logging.WARNING)
+
+    stdout = sys.stdout
+    stderr = sys.stderr
+
+    with open(os.devnull, 'w') as devnull:
+        sys.stdout = devnull
+        sys.stderr = devnull
+
+        if case == 1:
+            high_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best', verbosity=0)
+            return sp.lambdify(x, high_fit.sympy(), modules='numpy')
+        else:
+            low_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best', verbosity=0)
+            return sp.lambdify(x, low_fit.sympy(), modules='numpy')
+        
+    sys.stdout = stdout
+    sys.stderr = stderr

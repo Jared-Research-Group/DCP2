@@ -1,35 +1,44 @@
 import os
 import sys
 import subprocess
+from pathlib import Path
+from tqdm import tqdm
 
-from helper_functions import selectFolder
+import helper_functions
 
-def dataSearch(f, func, printFlag=True, id='data_collection_', id_atFront=True):
+logger = helper_functions.setup_logger(__name__)
+
+# recursively search for data directories (i.e., in a parent build directory) and apply a function to the directories
+def dataSearch(f, func, progressBar=True, id='data_collection_', id_atFront=True):
     found_entities = []
 
-    with os.scandir(f) as it:
-        for entry in it:
-                if printFlag: print(entry.name)
+    f = Path(f)
 
-                if id_atFront: id_found = entry.name.startswith(id)
-                else: id_found = entry.name.endswith(id)
+    # iterate over directory
+    for entry in tqdm(list(f.iterdir()), disable= not progressBar):
+            logger.debug(entry.name)
 
-                if id_found:
-                    if printFlag: print('Found target ' + entry.path)
-                    func(entry)
-                    found_entities.append(entry.path)
-                elif entry.is_dir():
-                    subsearch_discoveries = dataSearch(entry.path, func, printFlag, id, id_atFront)
-                
-                    if subsearch_discoveries:
-                        for e in subsearch_discoveries:
-                            found_entities.append(e)
+            if id_atFront: id_found = entry.name.startswith(id)
+            else: id_found = entry.name.endswith(id)
 
-    if printFlag: print(found_entities)
+            if id_found:
+
+                logger.info('Found target ' + str(entry))
+                func(entry)
+                found_entities.append(str(entry))
+
+            elif entry.is_dir():
+                subsearch_discoveries = dataSearch(entry, func, progressBar=False, id=id, id_atFront=id_atFront)
+            
+                if subsearch_discoveries:
+                    for e in subsearch_discoveries:
+                        found_entities.append(e)
+
+    logger.debug(found_entities)
     return found_entities
 
 def batchOperation(e):
-    from align_data import alignData
+    #from align_data import alignData
 
     process_script_dir = os.getcwd()
     subprocess.run([sys.executable, process_script_dir + '\\core_scripts/create_flirvideo.py', e.path + '\\FLIR', e.path + '\\FLIR.mp4', e.path + '\\FLIR_Frames'], check=True)
@@ -38,7 +47,5 @@ def batchOperation(e):
 
 if __name__ == '__main__':
 
-    from data_preprocessing import process_data_folder
-
-    parent = selectFolder()
-    dataSearch(parent, process_data_folder)
+    parent = helper_functions.selectFolder()
+    dataSearch(parent, batchOperation)

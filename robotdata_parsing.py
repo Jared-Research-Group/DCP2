@@ -1,11 +1,10 @@
-import os
 import sys
-from pathlib import Path
 import pandas as pd
-
 import xml.etree.ElementTree as ET
 
-from helper_functions import selectFolder, setup_directory_structure
+import helper_functions
+
+logger = helper_functions.setup_logger(__name__)
 
 def extract_xml_data(element, prefix=''):
     """Recursively extract all data from XML elements"""
@@ -56,10 +55,9 @@ def parse_robot_message(line):
         return parsed_data
         
     except Exception as e:
-        print(f"Error parsing line: {e}")
+        logger.error(f"Error parsing line: {e}")
         return None
 
-# TODO: add kwarg functionality to modify default filenames
 def convert_robot_data_to_csv(dir, **kwargs):
 
     """ 
@@ -69,7 +67,7 @@ def convert_robot_data_to_csv(dir, **kwargs):
     input_filename = 'robot_data.txt'
     output_filenames = ['robot_data__clean.csv']
     
-    [input_file, [output_file]] = setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
+    [input_file, [output_file]] = helper_functions.setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
 
     data_list = []
     
@@ -98,25 +96,13 @@ def convert_robot_data_to_csv(dir, **kwargs):
         df = df[timestamp_cols + other_cols]
         
         df.to_csv(output_file, index=False)
-        print(f"Data successfully written to {output_file}")
+        logger.info(f"Data successfully written to {output_file}")
 
     else:
-        print("No data was parsed")
+        logger.warning("No data was parsed")
 
 if __name__ == "__main__":
         
-        kwargs = {}
-        
-        if len(sys.argv) == 1:
-            dir = selectFolder()
-
-        if len(sys.argv) > 1:
-            dir = sys.argv[1]
-
-        if len(sys.argv) > 2:
-            kwargs['input_path'] = sys.argv[2]
-
-        if len(sys.argv) > 3:
-            kwargs['output_paths'] = [path for path in sys.argv[3:]]
+        [dir, kwargs] = helper_functions.setup_kwargs(__name__, 1)
 
         convert_robot_data_to_csv(dir, **kwargs)
