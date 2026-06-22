@@ -1,7 +1,10 @@
+import sys
 import pandas as pd
-from datetime import datetime
-
 import xml.etree.ElementTree as ET
+
+import helper_functions
+
+logger = helper_functions.setup_logger(__name__)
 
 def extract_xml_data(element, prefix=''):
     """Recursively extract all data from XML elements"""
@@ -52,10 +55,20 @@ def parse_robot_message(line):
         return parsed_data
         
     except Exception as e:
-        print(f"Error parsing line: {e}")
+        logger.error(f"Error parsing line: {e}")
         return None
 
-def convert_robot_data_to_csv(input_file, output_file):
+def convert_robot_data_to_csv(dir, **kwargs):
+
+    """ 
+        Convert raw robot data *.txt file to *.csv
+    """
+
+    input_filename = 'robot_data.txt'
+    output_filenames = ['robot_data__clean.csv']
+    
+    [input_file, [output_file]] = helper_functions.setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
+
     data_list = []
     
     # Read and parse the input file
@@ -83,28 +96,13 @@ def convert_robot_data_to_csv(input_file, output_file):
         df = df[timestamp_cols + other_cols]
         
         df.to_csv(output_file, index=False)
-        print(f"Data successfully written to {output_file}")
+        logger.info(f"Data successfully written to {output_file}")
+
     else:
-        print("No data was parsed")
+        logger.warning("No data was parsed")
 
 if __name__ == "__main__":
-    import sys
-    import os
-    
-    # Get the directory where the script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    if len(sys.argv) == 3:
-        # Make paths relative to script directory if they're not absolute
-        input_file = os.path.join(script_dir, sys.argv[1]) if not os.path.isabs(sys.argv[1]) else sys.argv[1]
-        output_file = os.path.join(script_dir, sys.argv[2]) if not os.path.isabs(sys.argv[2]) else sys.argv[2]
-    else:
-        input_file = os.path.join(script_dir, "robot_data.txt")
-        output_file = os.path.join(script_dir, "robot_data_parsed.csv")
-    
-    # Convert paths to proper format
-    input_file = os.path.normpath(input_file)
-    output_file = os.path.normpath(output_file)
-    
-    print(f"Attempting to read from: {input_file}")
-    convert_robot_data_to_csv(input_file, output_file)
+        
+        [dir, kwargs] = helper_functions.setup_kwargs(__name__, 1)
+
+        convert_robot_data_to_csv(dir, **kwargs)
