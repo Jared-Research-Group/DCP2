@@ -131,13 +131,6 @@ def quickPlot(data, s=0.005):
 
     return
 
-def dfToCsv(df, f):
-    df.to_csv(f, index=False)
-
-def dfHasColumn(df, id):
-    if id in df.columns: return True
-    return False
-
 def csvHasColumn(f, id):
     if id in pd.read_csv(f, nrows=1): return True
     return False

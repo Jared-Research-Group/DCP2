@@ -1,4 +1,4 @@
-from core_scripts.lembox import getLemboxData, getStartStop
+from lembox import getLemboxData, getStartStop
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from tkinter import filedialog
