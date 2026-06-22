@@ -24,7 +24,7 @@ def calc_metrics(file):
     pr    = np.zeros(len(starts))
     times = np.full(len(starts), datetime(year=1970, month=1, day=1))
 
-    start_time = datetime.strptime(df['Timestamp'][int((window - overlap) / 2)][:-4], '%Y-%m-%d %H:%M:%S.%f')  # time of middle sample in first window
+    start_time = datetime.strptime(df['Timestamp'][int(window / 2)][:-4], '%Y-%m-%d %H:%M:%S.%f')  # time of middle sample in first window
 
     # iterate over windows
     for i, start in enumerate(starts):
