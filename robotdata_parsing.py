@@ -1,5 +1,6 @@
-import sys
 import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
 import xml.etree.ElementTree as ET
 
 import helper_functions
@@ -85,15 +86,22 @@ def convert_robot_data_to_csv(dir, **kwargs):
     # Convert to DataFrame and save to CSV
     if data_list:
         df = pd.DataFrame(data_list)
+
+        [IpocUnique, IpocIndex] = np.unique(df['IPOC'], return_index=True)
+
+        ipoc_start = IpocUnique[0]
+        time_steps = [timedelta(milliseconds= ipoc - ipoc_start) for ipoc in IpocUnique]
+
+        df = df.iloc[IpocIndex]
+        df['SystemTime'] = [step + datetime.strptime(df['SystemTime'][0], '%Y-%m-%d %H:%M:%S.%f') for step in time_steps]
         
-        # Define timestamp columns to appear first
         timestamp_cols = ['SystemTime', 'RelativeTime']
         
         # Get all other columns
         other_cols = [col for col in df.columns if col not in timestamp_cols]
         
         # Reorder columns
-        df = df[timestamp_cols + other_cols]
+        df = df[['SystemTime'] + other_cols]
         
         df.to_csv(output_file, index=False)
         logger.info(f"Data successfully written to {output_file}")

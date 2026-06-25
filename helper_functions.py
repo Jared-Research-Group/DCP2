@@ -152,7 +152,7 @@ def selectFolder(title='Select Top-Level Folder'):
 
     return path
 
-def setup_kwargs(name, num_outputs):
+def setup_kwargs(name, num_outputs=1):
 
     kwargs = {}
 
@@ -166,9 +166,11 @@ def setup_kwargs(name, num_outputs):
         kwargs['input_path'] = sys.argv[2]
 
     if len(sys.argv) == 3 + num_outputs:
-        kwargs['output_files'] = [arg for arg in sys.argv[3:3 + num_outputs]]
-    else:
-        raise ValueError (name + ' expected '+ str(num_outputs) + ' output file paths via command line. Exiting...')
+        try:
+            kwargs['output_files'] = [arg for arg in sys.argv[3:3 + num_outputs]]
+        except Exception as e:
+            print(e)
+            print(name + ' expected '+ str(num_outputs) + ' output file paths via command line. Exiting...')
 
     return dir, kwargs
 
@@ -185,7 +187,8 @@ def setup_directory_structure(dir, input_file, output_files, **kwargs):
     raw_dir = Path(dir)
 
     if raw_dir.parents[0].name != 'raw_data':
-        logger.critical('Incorrect directory structure. Raw data parent folder must be called \'raw_data\'.')
+        logger.critical('Incorrect directory structure. Raw data parent folder must be called \'raw_data\'. \
+                        (not ' + raw_dir.parents[0].name + ')')
         raise FileExistsError
     
     if not os.access(raw_dir.parents[1] / 'modified_data', os.R_OK):
