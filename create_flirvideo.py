@@ -107,7 +107,8 @@ def npy_to_video(dir, forceUpdate=False, fps=30, width=464, height=348, **kwargs
 
     [input_folder, [untouched_folder, output_file, output_frames_folder]] = helper_functions.setup_directory_structure(dir, input_file, output_files, **kwargs)
 
-    shutil.copytree(input_folder, untouched_folder)
+    if not os.access(untouched_folder, os.R_OK):
+        shutil.copytree(input_folder, untouched_folder)
 
     if not os.access(output_file, os.R_OK) or forceUpdate:
         global_min, global_max = find_global_min_max(input_folder)

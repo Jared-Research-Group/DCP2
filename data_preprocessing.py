@@ -15,6 +15,7 @@ from audio_conversion  import csv_to_wav
 from create_flirvideo  import npy_to_video
 from thermocouple      import preprocess_thermocouple
 from xiris             import buildVideoCV2
+from rebase_time       import temporal_alignment
 
 def process_data_folder(folder_path, forceUpdate=False):
     """Process different types of data files in the given folder using appropriate scripts."""
@@ -40,6 +41,8 @@ def process_data_folder(folder_path, forceUpdate=False):
         'Xiris__raw': buildVideoCV2
     }
     
+    processed = set()
+
     # Process regular files
     for file_path in folder.glob('*'):
         name = file_path.name
@@ -59,6 +62,12 @@ def process_data_folder(folder_path, forceUpdate=False):
                     
             except Exception as e:
                 logger.error(f"Error running {func.__name__}: {e}")
+
+        processed.add(name)
+
+    # need a better entry point
+    if any([n.startswith(('lembox', 'microphone')) for n in processed]):
+        temporal_alignment(folder.parents[1] / 'modified_data' / folder.name, ignition_wait_time=.2, flag_plot=True)
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
@@ -99,4 +108,4 @@ if __name__ == "__main__":
         folder_path = folder_path / 'raw_data'
 
         logger.info(f"Processing build: {folder_path.parent}")
-        batch_process.dataSearch(folder_path, partial(process_data_folder)) # don't rerun analysis if we target a tree of directories (save time)
+        batch_process.dataSearch(folder_path, partial(process_data_folder, forceUpdate=True)) # don't rerun analysis if we target a tree of directories (save time)
