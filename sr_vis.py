@@ -35,15 +35,15 @@ def animate_eq_hist(dir, eq_hist, xlims=None, ylims=None):
     fig, ax = plt.subplots(1, 1, layout='constrained')
 
     if xlims is not None:
-        ax.set_xlim(xlims[0] - 50, xlims[1] + 50)
+        ax.set_xlim(xlims[0], xlims[1] + 50)
     if ylims is not None:
         ax.set_ylim(ylims[0] - 50, ylims[1] + 50)
 
-    x_val = np.arange(xlims[0], xlims[1], 0.01)
-    x = sp.Symbol('Pyrometer_Temperature')
+    x_val = np.arange(xlims[0], xlims[1], 10)
+    x = sp.Symbol('FLIR_Intensity')
     def drawNextFrame(eq_id):
         eqn = sp.lambdify(x, eq_hist[eq_id])
-        ax.plot(x_val, eqn(x_val + 273.15) - 273.15)
+        ax.plot(x_val, eqn(x_val) - 273.15)
 
         return
 
@@ -74,4 +74,4 @@ if __name__ == '__main__':
     flir_high_ylims = (-100, 1050)
     flir_low_ylims = (-200, 200)
 
-    animate_eq_hist(filename.parent, eq_hist, pyro_xlims, pyro_ylims)
+    animate_eq_hist(filename.parent, eq_hist, flir_xlims, flir_high_ylims)
