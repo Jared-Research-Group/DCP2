@@ -311,7 +311,7 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
         metadata = {}
         metadata['current_iterations'] = 0
         metadata['elapsed_time']       = 0
-        metadata['eqation_hist']       = []
+        metadata['equation_hist']       = []
         metadata['loss_hist']          = []
         
     while metadata['current_iterations'] < total_iterations:
@@ -325,8 +325,8 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
         metadata['current_iterations'] += model.niterations
         metadata['elapsed_time']       += time.time() - start
         
-        metadata['equation_hist'].append(model.sympy())
-        metadata['loss_hist']    .append(model.get_best().values())
+        metadata['equation_hist'].append(model.get_best()['sympy_format'])
+        metadata['loss_hist']    .append(float(model.get_best()['loss']))
         
         with open(Path(model.output_directory) / 'live' / 'iterations.yaml', 'w') as f:
             yaml.dump(metadata, f)
@@ -387,7 +387,7 @@ if __name__ == '__main__':
     else:
         dir = selectFolder()
     
-    its = 800000
+    its = 150000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
@@ -400,6 +400,7 @@ if __name__ == '__main__':
 
     #high_fit = regress(highRegimeData, dir, total_iterations=1000000, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live")
     high_fit = regress(highRegimeData, dir, total_iterations=its) #multithread
+    low_fit = regress(lowRegimeData, dir, total_iterations=its) #multithread
 
     #low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live")
 
