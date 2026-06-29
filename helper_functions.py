@@ -152,6 +152,23 @@ def selectFolder(title='Select Top-Level Folder'):
 
     return path
 
+def selectFile(title='Select File'):
+    init_dir = os.path.expanduser('~')
+    if os.access(init_dir + '/Data', os.R_OK):
+        init_dir += '/Data'
+
+    root = tk.Tk()
+    root.wm_attributes('-topmost', 1)
+    root.withdraw()
+
+    path = filedialog.askopenfilename(
+        title=title,
+        initialdir = init_dir,
+        parent=root
+    )
+
+    return path
+
 def setup_kwargs(name, num_outputs=1):
 
     kwargs = {}

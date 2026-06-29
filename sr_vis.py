@@ -15,15 +15,17 @@ def get_hist(yaml_file):
 
     eq_hist   = metadata['equation_hist']
     loss_hist = metadata['loss_hist']
-
+    
     return eq_hist, loss_hist
 
 def plot_loss(loss, increment=1000):
     its = np.arange(len(loss)) * increment
 
+    plt.tight_layout()
     plt.plot(its, loss)
     plt.xlabel('PySR Iterations')
     plt.ylabel('Best-Fitting Function MSE Loss')
+    plt.semilogy()
 
     plt.show()
 
@@ -38,10 +40,10 @@ def animate_eq_hist(dir, eq_hist, xlims=None, ylims=None):
         ax.set_ylim(ylims[0] - 50, ylims[1] + 50)
 
     x_val = np.arange(xlims[0], xlims[1], 0.01)
-
+    x = sp.Symbol('Pyrometer_Temperature')
     def drawNextFrame(eq_id):
-        eqn = eq_hist[eq_id]
-        ax.plot(x_val, eqn(x_val))
+        eqn = sp.lambdify(x, eq_hist[eq_id])
+        ax.plot(x_val, eqn(x_val + 273.15) - 273.15)
 
         return
 
@@ -58,8 +60,12 @@ if __name__ == '__main__':
 
     else:
         filename = helper_functions.selectFile()
+        
+    filename = Path(filename)
 
     eq_hist, loss_hist = get_hist(filename)
+    
+    plot_loss(loss_hist)
 
     pyro_xlims = (-45, 1370)
     pyro_ylims = (-45, 1370)
