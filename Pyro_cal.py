@@ -207,7 +207,7 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
     regressor_args = { 'niterations': batch_iterations, 'batching': True, 'maxsize': 30, \
             'run_id': 'live', 'parallelism': 'multithreading', 'warm_start': True, \
             'bumper': experimental_optimization, 'turbo': experimental_optimization, \
-            'model_selection': 'best', 'annealing': False}
+            'model_selection': 'best', 'annealing': True, 'parsimony': .2, 'adaptive_parsimony_scaling': 2000}
     
     if flag_multiprocessing:
         regressor_args['parallelism'] = 'multiprocessing'
@@ -310,7 +310,7 @@ if __name__ == '__main__':
     else:
         dir = selectFolder()
     
-    its = 200000
+    its = 250000
 
     calibration_datasets = ['data_collection_20260331_145851', 'data_collection_20260331_150208', 'data_collection_20260331_150516', 'data_collection_20260331_150916', 'data_collection_20260331_151325',
                             'data_collection_20260331_151701', 'data_collection_20260331_152125', 'data_collection_20260331_152423', 'data_collection_20260331_152825', 'data_collection_20260331_153059', 
