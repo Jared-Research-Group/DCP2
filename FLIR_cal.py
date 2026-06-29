@@ -300,7 +300,7 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
 
         # read the number of iterations that have been performed on this regressor object previously.
         with open(Path(run_directory) / 'iterations.yaml', 'r') as f:
-            metadata = yaml.safe_load(f)
+            metadata = yaml.unsafe_load(f)
 
     # if no run directory is passed, start a new regressor
     else:
@@ -399,8 +399,8 @@ if __name__ == '__main__':
     highRegimeData, lowRegimeData = combineData(dir, calibration_datasets)
 
     #high_fit = regress(highRegimeData, dir, total_iterations=1000000, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live")
-    high_fit = regress(highRegimeData, dir, total_iterations=its) #multithread
-    low_fit = regress(lowRegimeData, dir, total_iterations=its) #multithread
+    high_fit = regress(highRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live") #multithread
+    low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live") #multithread
 
     #low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live")
 
