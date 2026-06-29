@@ -4,6 +4,7 @@ import time
 import math
 import os
 import sys
+from pathlib import Path
 
 import batch_process
 import helper_functions
@@ -21,9 +22,10 @@ def preprocess_thermocouple(dir, **kwargs):
 
 # read raw thermocouple data *.csv as pandas DataFrame
 def getThermocoupleData(d, filename='thermocouple_data.csv'):
+    d = Path(d)
 
     logger.info('         Reading thermocouple data...')
-    df = pd.read_csv(d + '/' + filename, encoding='cp1252', parse_dates=['Timestamp'])         # weird specific encoding required for successful read
+    df = pd.read_csv(d / filename, encoding='cp1252', parse_dates=['Timestamp'])         # weird specific encoding required for successful read
 
     return df
 

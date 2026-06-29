@@ -7,6 +7,7 @@ import numpy as np
 import time
 import math
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from lembox import getLemboxData
 from core_scripts.position import readRSI, plotPosValColormap, plotPos
@@ -42,12 +43,14 @@ def interpTime(id, len):
 
 
 def alignData(dir, forceDataUpdate=False):
+    dir = Path(dir)
+
     print(f'    Aligning data for {dir}...')
 
-    noAlignment = not os.access(dir +'/aligned_data.csv', os.R_OK)              # does aligned_data.csv exist?
+    noAlignment = not os.access(dir / 'aligned_data.csv', os.R_OK)              # does aligned_data.csv exist?
 
     if not noAlignment:                                                         # if aligned_data.csv exists, does it contain data from all expected sources?
-        df = pd.read_csv(dir +'/aligned_data.csv', dtype=types)
+        df = pd.read_csv(dir / 'aligned_data.csv', dtype=types)
 
     cdef dict nonaligned_data, aligned_data
 
@@ -98,7 +101,7 @@ def alignData(dir, forceDataUpdate=False):
         # FLIR
 
         try:
-            flir_t, flir_path = getFrameData_FLIR(dir + '/FLIR')
+            flir_t, flir_path = getFrameData_FLIR(dir / 'FLIR')
 
             nonaligned_data['flir'] = [[], flir_path]
             aligned_data['flir'] = []
@@ -115,7 +118,7 @@ def alignData(dir, forceDataUpdate=False):
             # Xiris doesn't have a consistent sample rate, so we can't interpolate it's timestamps
 
         try:
-            xir_path = getFrameData_XIR(dir + '/Xiris')
+            xir_path = getFrameData_XIR(dir / 'Xiris')
 
             xir_t = []
             xir_a_time = []
@@ -149,7 +152,7 @@ def alignData(dir, forceDataUpdate=False):
 
         # position data, calculated velocity data, interpolated rsi timestamps, global timestamp of data collection start, calculated RSI sample rate
         try:
-            pos, vel, rsi_timestamps, rsi_time, rsiCalcSR = readRSI(dir + '/robot_data.csv', 1000, forceDataUpdate)
+            pos, vel, rsi_timestamps, rsi_time, rsiCalcSR = readRSI(dir / 'robot_data.csv', 1000, forceDataUpdate)
             sample_rate['rsi'] = rsiCalcSR
 
             nonaligned_data['rsi'] = [[], pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], vel[3]]
@@ -167,7 +170,7 @@ def alignData(dir, forceDataUpdate=False):
         #interpolated lembox timestamps, raw current, raw voltage, rolling average current, rolling average voltage, global timestamp of data collection start
         try:
 
-            lem_time_rel, curr, volt, avgI, avgV, lem_time = getLemboxData(dir + '/lembox_data.csv', 5000, forceDataUpdate)
+            lem_time_rel, curr, volt, avgI, avgV, lem_time = getLemboxData(dir / 'lembox_data.csv', 5000, forceDataUpdate)
 
             nonaligned_data['lembox'] = [[], curr, avgI, volt, avgV]
             aligned_data['lembox'] = []
@@ -183,7 +186,7 @@ def alignData(dir, forceDataUpdate=False):
 
         # interpolated mic timestamps, amplitude, global timestamp of data collection start
         try:
-            mic_t, mic_A = mic_time(dir + '/microphone_data.csv', dir + '/microphone_data_aligned.csv', sample_rate = 48000)
+            mic_t, mic_A = mic_time(dir / 'microphone_data.csv', dir / 'microphone_data_aligned.csv', sample_rate = 48000)
             mic = [[], mic_A]
 
             nonaligned_data['mic'] = mic
@@ -266,7 +269,7 @@ def alignData(dir, forceDataUpdate=False):
             for i, stream in enumerate(aligned_data[dat]):
                     df[labels[dat][i]] = stream[-len(df['time']):]
 
-        dfToCsv(df, dir + '/aligned_data.csv')
+        dfToCsv(df, dir / 'aligned_data.csv')
 
     return df
 

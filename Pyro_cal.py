@@ -20,118 +20,47 @@ from thermography import getPixels, getFrameData, getHotFrame
 from data_manipulation import selectFolder, dfToCsv
 from batch_process import dataSearch
 
-# at which frame in the video can we start measuring useful temperature? (discovered manually, accounts for toaster oven door opening)
-start_frames = {'60C High':'150', '60C Low':'140', '90C High':'130', '90C Low':'150', '120C High':'140', '120C Low':'190', '150C High':'145', \
-                '150C Low':'130', '180C High':'160', '180C Low':'200', '215C High':'180', '230C High':'220', '230C Low':'140', \
-                'Ambient High':'200', 'Ambient Low':'200', '250C High':'0', '300C High 1':'0', '300C High 2':'0', '300C High 3':'0', \
-                'Cold High':'0', 'Cold Low':'0', 'dark high':'0', 'dark low':'0', 'Warming High':'0', '400C High':'0', 'burning_kaptan High':'0', '500C High':'0'}
-
-positions = {'60C High':'021026', '60C Low':'021026', '90C High':'021026', '90C Low':'021026', '120C High':'021026', '120C Low':'021026', '150C High':'021026', \
-                '150C Low':'021026', '180C High':'021026', '180C Low':'021026', '215C High':'021026', '230C High':'021126', '230C Low':'021126', \
-                'Ambient High':'021126', 'Ambient Low':'021126', 'Cold High':'022726', 'Cold Low':'022726', 'Warming High':'022726', '250C High':'030326', \
-                '300C High 1':'030326', '300C High 2':'030326', '300C High 3':'030326', 'dark low':'022726', 'dark high':'022726', '400C High':'031226_2', 'burning_kaptan High':'031226_1', '500C High':'031326'}
-
-validation_datasets = ['250C High', '300C High 1', '300C High 2', '300C High 3', 'Warming High', '400C High', 'burning_kaptan High', '500C High']
-
-# highlights each pixel in pix in a given frame, used for validation of pixel region selection
-def highlight_rect(fr, pix):
-    fr = np.float32(fr)/ np.max(fr)
-
-    for row in pix:
-        for p in row:
-            fr[p[1]][p[0]] = 1.15   # highlights will always be brighter than other frames, even if sensor is saturated
-
-    return fr
+validation_datasets = []
 
 # read FLIR temp data from selected pixels & frames, add this thermal data to aligned data csv. returns + saves windowed dataframe
-def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False, window_length=1, needTimes=False):
+def getCalData(dir, recalc_temps=False, window_length=5, needTimes=False):
     # if data isn't stored, calculate it
 
-    if type(dir) is not str:
-        dir = dir.path
+    dir = Path(dir)
+    temp_regime = dir.name
 
-    temp_regime = os.path.split(os.path.split(dir)[0])[1]
-    if (window_length != -1 and not os.access(os.path.split(dir)[0] + '/' + temp_regime + '.csv', os.R_OK)) or (window_length == -1 and not os.access(os.path.split(dir)[0] + '/' + temp_regime + '_unwindowed.csv', os.R_OK)) or recalc_temps:
-        top_level_dir = os.path.split(os.path.split(dir)[0])[0]
+    if (window_length != -1 and not os.access(dir.parent / (temp_regime + '.csv'), os.R_OK)) or (window_length == -1 and not os.access(dir.parent / (temp_regime + '_unwindowed.csv'), os.R_OK)) or recalc_temps:
+        top_level_dir = dir.parents[2]
 
-        # data from 021026, 021126, 022726, and 030326 used different FLIR positions. Because we examine the same set of pixels for each run, we need
-        # to store two pixel regions and switch between them based on which measurement we are examining.
-        which_pix = positions[temp_regime]
-
-        # if we can't find stored pixel position, request it from user
-        if not os.access(top_level_dir + '/pix' + which_pix + '.npy', os.R_OK) or reselect_zone:
-            p = getPixels(dir + '/FLIR', 2)
-            p = np.array(p)
-            np.save(top_level_dir + '/pix' + which_pix + '.npy', p)
-        else:
-            p = np.load(top_level_dir + '/pix' + which_pix + '.npy')
-
-        # display selected pixels to validate position of zone
-        if validate_pixel:
-            import matplotlib.pyplot as plt
-
-            ex_frame = getHotFrame(dir + '/FLIR')
-            ex_frame = highlight_rect(ex_frame, p)
-            plt.imshow(ex_frame, cmap='viridis')
-            plt.grid(False)
-            plt.show()
-
-        # collect data on selected pixels
-        timestamps, temps, frames = getFrameData(dir + '/FLIR', p)
-
-        # average temps of pixels in selected zone for each frame
-        cal_data = {}
-        for t, fr in enumerate(frames):
-            sum = 0.0
-            for i in range(len(temps[t])):
-                for j in range(len(temps[t][i])):
-                    sum += temps[t][i][j]
-            
-            sum /= len(temps[0])*len(temps[0][0])
-
-            cal_data[os.path.abspath(fr)] = sum
-
-        df = pd.read_csv(dir + '/aligned_data.csv')
-
-        # add pixel temps to aligned dataset
-        for i, fr in enumerate(df['FLIR_frame']):
-            df.loc[i, 'FLIR_frame'] = os.path.abspath(fr)
-
-        df['FLIR_intensity'] = df['FLIR_frame'].map(cal_data)
+        df = pd.read_csv(dir / 'aligned_data.csv')
 
         # we need to window data in time to cut out obfuscation of wall in video, thermal dropoff towards end of data collection
         if window_length != -1:
-            first_frame = os.path.split(df['FLIR_frame'][0])[0] + '\\FLIR-Frame-' + start_frames[temp_regime] + '.npy'
-            print(first_frame)
 
-            start_index = (df['FLIR_frame'] == first_frame).idxmax()
-            print(start_index)
+            start_index = 0
 
             df = df.loc[(df['time'] > df['time'][start_index]) & (df['time'] < (df['time'][start_index] + window_length))]
             df.reset_index(inplace=True)
 
             # save windowed data to new .csv for later manipulation
-            dfToCsv(df, os.path.split(dir)[0] + '/' + temp_regime + '.csv')
+            df.to_csv(dir.parent / (temp_regime + '.csv'), index=False)
 
         else:
-            dfToCsv(df, os.path.split(dir)[0] + '/' + temp_regime + '_unwindowed.csv')
+            df.to_csv(dir.parent / (temp_regime + '_unwindowed.csv'), index=False)
 
     # if windowed data is already saved, just load it from the file
     else:
         if window_length != -1:
-            df = pd.read_csv(os.path.split(dir)[0] + '/' + temp_regime + '.csv')
+            df = pd.read_csv(dir.parent / (temp_regime + '.csv'))
         else:
-            df = pd.read_csv(os.path.split(dir)[0] + '/' + temp_regime + '_unwindowed.csv')
+            df = pd.read_csv(dir.parent / (temp_regime + '_unwindowed.csv'))
 
     channel_num = 0
 
-    if 'kaptan' in temp_regime or '400' in temp_regime:
-        channel_num = 1
-
     if needTimes:
-        return (df['FLIR_intensity'], df['Channel_' + str(channel_num) + '(°C)'], temp_regime, df['time'])
+        return (df['Channel_' + str(channel_num) + '(°C)'], df['Pyrometer_Temp(°C)'], temp_regime, df['time'])
     else:
-        return (df['FLIR_intensity'], df['Channel_' + str(channel_num) + '(°C)'], temp_regime)  
+        return (df['Channel_' + str(channel_num) + '(°C)'], df['Pyrometer_Temp(°C)'], temp_regime)
 
 # requires input arrays nested in tuples, allows for multiple datasets at once
 def plotCalCurve(data, fit=None, vali_data=None):
@@ -224,68 +153,61 @@ def plotCalCurve(data, fit=None, vali_data=None):
     return
 
 def combineData(dir, inclusions, validation=False, force_update=False):
+    dir = Path(dir)
 
-    if not os.access(dir + '/Combined_Calibration_Data.csv', os.R_OK) or force_update:
-        df = pd.DataFrame({'FLIR_intensity':pd.Series(dtype='float64'), 'tc_temp(°K)':pd.Series(dtype='float64'), 'experiment':pd.Series(dtype='str')})
+    if not os.access(dir / 'Combined_Calibration_Data.csv', os.R_OK) or force_update:
+        df = pd.DataFrame({'pyro_temp(°K)':pd.Series(dtype='float64'), 'tc_temp(°K)':pd.Series(dtype='float64'), 'experiment':pd.Series(dtype='str')})
 
         def getDataSubset(d):
             nonlocal df
 
-            if os.path.split(os.path.split(d)[0])[1] in validation_datasets:
-                flir_intensity, tc_temp, temp_regime = getCalData(d, False, False, False, -1)
+            if dir.parent.name in validation_datasets:
+                tc_temp, pyro_temp, temp_regime = getCalData(d, False, False, False, -1)
             else:
-                flir_intensity, tc_temp, temp_regime = getCalData(d, False)
+                tc_temp, pyro_temp, temp_regime = getCalData(d, False)
+                
             tc_temp = tc_temp + 273.15 # convert to kelvin
+            pyro_temp = pyro_temp + 273.15
 
-            experiment_name = pd.Series(temp_regime, index=range(len(flir_intensity)))
-            df_additions = pd.DataFrame({'FLIR_intensity':flir_intensity, 'tc_temp(°K)':tc_temp, 'experiment':experiment_name})
+            experiment_name = pd.Series(temp_regime, index=range(len(pyro_temp)))
+            df_additions = pd.DataFrame({'pyro_temp(°K)':pyro_temp, 'tc_temp(°K)':tc_temp, 'experiment':experiment_name})
 
             df = pd.concat([df, df_additions], ignore_index=True)
 
         dataSearch(dir, getDataSubset)
-        dfToCsv(df, dir + '/Combined_Calibration_Data.csv')
+        df.to_csv(dir / 'Combined_Calibration_Data.csv', index=False)
     else:
-        df = pd.read_csv(dir + '/Combined_Calibration_Data.csv')
+        df = pd.read_csv(dir / 'Combined_Calibration_Data.csv')
 
-    high_data = df.loc[df['experiment'].str.contains('High') & df['experiment'].isin(inclusions)]
-    high_data.reset_index(inplace=True)
+    data = df.loc[df['experiment'].isin(inclusions)]
+    data.reset_index(inplace=True)
 
-    low_data = df.loc[df['experiment'].str.contains('Low') & df['experiment'].isin(inclusions)]
-    low_data.reset_index(inplace=True)
-
-    return (high_data['FLIR_intensity'], high_data['tc_temp(°K)'], high_data['experiment']), ((low_data['FLIR_intensity'], low_data['tc_temp(°K)'], low_data['experiment']))
+    return (data['pyro_temp(°K)'], data['tc_temp(°K)'], data['experiment'])
 
 
 
 def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_directory=None, flag_multiprocessing=False, **kwargs):
 
     # allow arbitrary modification of operators via kwargs
-    binary_operators = ['+', '-', '*', '/']
-    unary_operators = ['log', 'neg']
+    binary_operators = ['+', '-', '*', '/', '^']
+    unary_operators = ['log', 'neg', 'sqrt', 'exp']
 
     if 'binary_operators' in kwargs: binary_operators = kwargs['binary_operators']
     if 'unary_operators'  in kwargs: unary_operators  = kwargs['unary_operators'] 
 
     # unpack data
-    flir_intensity, tc_temp, temp_regime = data
+    pyro_temp, tc_temp, temp_regime = data
 
     # data must be formatted as pd.Dataframe for regression
-    flir_intensity = pd.DataFrame({'FLIR_Intensity':flir_intensity})
-    tc_temp = pd.DataFrame({'Thermocouple_Temperature(°K)':tc_temp})
-
-    # determine FLIR measurement range for output directory naming. This should be moved outside this function
-    model_type = ''
-    if 'High' in temp_regime[0]:
-        model_type = 'High'
-    elif 'Low' in temp_regime[0]:
-        model_type = 'Low'
+    pyro_temp = pd.DataFrame({'Pyrometer_Temperature':pyro_temp})
+    tc_temp = pd.DataFrame({'Thermocouple_Temperature':tc_temp})
 
     experimental_optimization = True
 
     regressor_args = { 'niterations': batch_iterations, 'batching': True, 'maxsize': 30, \
             'run_id': 'live', 'parallelism': 'multithreading', 'warm_start': True, \
             'bumper': experimental_optimization, 'turbo': experimental_optimization, \
-            'model_selection': 'best', 'annealing': True}
+            'model_selection': 'best', 'annealing': False}
     
     if flag_multiprocessing:
         regressor_args['parallelism'] = 'multiprocessing'
@@ -300,12 +222,13 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
 
         # read the number of iterations that have been performed on this regressor object previously.
         with open(Path(run_directory) / 'iterations.yaml', 'r') as f:
-            metadata = yaml.safe_load(f)
+            
+            metadata = yaml.unsafe_load(f)
 
     # if no run directory is passed, start a new regressor
     else:
         
-        model = pysr.PySRRegressor(output_directory=(Path(dir) / 'fits' / model_type), binary_operators=binary_operators, \
+        model = pysr.PySRRegressor(output_directory=(Path(dir) / 'fits'), binary_operators=binary_operators, \
                                    unary_operators=unary_operators, **regressor_args)
         
         metadata = {}
@@ -320,7 +243,7 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
         print('Elapsed time:       ', timedelta(seconds=metadata['elapsed_time']))
         
         start = time.time()
-        m = model.fit(flir_intensity, tc_temp)
+        m = model.fit(pyro_temp, tc_temp)
         
         metadata['current_iterations'] += model.niterations
         metadata['elapsed_time']       += time.time() - start
@@ -387,20 +310,20 @@ if __name__ == '__main__':
     else:
         dir = selectFolder()
     
-    its = 150000
+    its = 200000
 
-    calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
-                            '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
+    calibration_datasets = ['data_collection_20260331_145851', 'data_collection_20260331_150208', 'data_collection_20260331_150516', 'data_collection_20260331_150916', 'data_collection_20260331_151325',
+                            'data_collection_20260331_151701', 'data_collection_20260331_152125', 'data_collection_20260331_152423', 'data_collection_20260331_152825', 'data_collection_20260331_153059', 
+                            'data_collection_20260331_153347', 'data_collection_20260331_153853', 'data_collection_20260331_154356', 'data_collection_20260331_154938', 'data_collection_20260331_155504',
+                            ]#'data_collection_20260421_150746']
     
-    validation_data = ['250C High', '300C High 1', '300C High 2', '300C High 3', '500C High']
-    #validation_data = ['230C High']
+    validation_data = []
 
     
-    highRegimeData, lowRegimeData = combineData(dir, calibration_datasets)
+    data = combineData(dir, calibration_datasets)
 
     #high_fit = regress(highRegimeData, dir, total_iterations=1000000, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live")
-    high_fit = regress(highRegimeData, dir, total_iterations=its) #multithread
-    low_fit = regress(lowRegimeData, dir, total_iterations=its) #multithread
+    fit = regress(data, dir, total_iterations=its, run_directory=r"D:\grad data\pyrometer cal no flir\fits\live") #multithread
 
     #low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live")
 
@@ -411,6 +334,7 @@ if __name__ == '__main__':
     #low_fit = low_fit.from_file(run_directory="D:/grad data/new_flir/fits/Low/20260609_051032_KpBFxo", model_selection='best')
     #high_fit = high_fit.from_file(run_directory=r"D:\grad data\new_flir\fits\High\20260622_092806_Qs9G0b", model_selection='best')
 
+    """
     vali_data = []
     for data in validation_data:
         validationHigh, validationLow = combineData(dir, [data], True)
@@ -418,11 +342,12 @@ if __name__ == '__main__':
         #vali_data.append(validationLow)
 
     #print(vali_data)
+    """
 
 
     #plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit), vali_data)
         
-    plotCalCurve((highRegimeData, lowRegimeData), (high_fit), vali_data)
+    plotCalCurve((highRegimeData, lowRegimeData), (high_fit))
     #plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit))
 
     '''

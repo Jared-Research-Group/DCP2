@@ -27,7 +27,7 @@ def getHotFrame(dir):
     l = os.listdir(dir)
 
     hotFrame = 'FLIR-Frame-' + str(int(3*len(l)/4)) + '.npy'
-    hotFrame = dir + '/' + hotFrame
+    hotFrame = dir / hotFrame
 
     hotFrame = np.load(hotFrame, allow_pickle=True)
 
@@ -127,9 +127,9 @@ def getFrameData(dir, pix=None, printFlag=True):
         pixelIntensity.append([])
 
         # read/store timestamp, filename 
-        frame = np.load(e.path, allow_pickle=True)
+        frame = np.load(Path(e), allow_pickle=True)
         times.append(frame.item()['timestamp'])
-        framePaths.append(e.path)
+        framePaths.append(Path(e))
 
         cdef unsigned short[:,:] frame_dat = frame.item()['frame']
 

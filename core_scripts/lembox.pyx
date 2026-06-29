@@ -19,7 +19,7 @@ if build_dir not in sys.path:
     sys.path.insert(0, build_dir)
 
 from data_manipulation import getRollingAvg, getRollingStdDev, getRollingSkew, getRollingKurtosis, getStartStop, dfHasColumn, dfAddColumn, dfToCsv, quickPlot
-from lembox_scaling import scaleLembox
+from lembox_scaling import scale_lembox
 
 sample_rate = 20000 #hz
 
@@ -29,7 +29,7 @@ def getLemboxData(f, n = 1000, forceDataUpdate=False):
     df = pd.read_csv(f)
 
     if not dfHasColumn(df, 'Scaled_Current(A)'):
-        scaleLembox(os.path.split(f)[0])
+        scale_lembox(os.path.split(f)[0])
         df = pd.read_csv(f)
 
     cdef double[:] curr = df['Scaled_Current(A)'].to_numpy()
