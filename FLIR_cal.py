@@ -7,6 +7,8 @@ import time
 import yaml
 from pathlib import Path
 
+import random
+
 build_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'build', 'lib.win-amd64-cpython-310')
 if build_dir not in sys.path:
     sys.path.insert(0, build_dir)
@@ -44,11 +46,11 @@ def highlight_rect(fr, pix):
     return fr
 
 # read FLIR temp data from selected pixels & frames, add this thermal data to aligned data csv. returns + saves windowed dataframe
-def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False, window_length=1, needTimes=False):
+def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False, window_length=10, needTimes=False):
     # if data isn't stored, calculate it
 
     if type(dir) is not str:
-        dir = dir.path
+        dir = str(dir)
 
     temp_regime = os.path.split(os.path.split(dir)[0])[1]
     if (window_length != -1 and not os.access(os.path.split(dir)[0] + '/' + temp_regime + '.csv', os.R_OK)) or (window_length == -1 and not os.access(os.path.split(dir)[0] + '/' + temp_regime + '_unwindowed.csv', os.R_OK)) or recalc_temps:
@@ -234,7 +236,7 @@ def combineData(dir, inclusions, validation=False, force_update=False):
             if os.path.split(os.path.split(d)[0])[1] in validation_datasets:
                 flir_intensity, tc_temp, temp_regime = getCalData(d, False, False, False, -1)
             else:
-                flir_intensity, tc_temp, temp_regime = getCalData(d, False)
+                flir_intensity, tc_temp, temp_regime = getCalData(d, False, recalc_temps=force_update)
             tc_temp = tc_temp + 273.15 # convert to kelvin
 
             experiment_name = pd.Series(temp_regime, index=range(len(flir_intensity)))
@@ -285,7 +287,9 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
     regressor_args = { 'niterations': batch_iterations, 'batching': True, 'maxsize': 30, \
             'run_id': 'live', 'parallelism': 'multithreading', 'warm_start': True, \
             'bumper': experimental_optimization, 'turbo': experimental_optimization, \
-            'model_selection': 'best', 'annealing': True}
+            'model_selection': 'best', 'annealing': True, 'weight_optimize': 0.001, \
+            'warmup_maxsize_by':0.25, 'parsimony': 0.05, 'populations': 60, \
+            'adaptive_parsimony_scaling': 1500, 'maxdepth': 10}
     
     if flag_multiprocessing:
         regressor_args['parallelism'] = 'multiprocessing'
@@ -387,19 +391,20 @@ if __name__ == '__main__':
     else:
         dir = selectFolder()
     
-    its = 150000
+    its = 50000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
-                            '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
+                            '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High', '250C High']
     
     validation_data = ['250C High', '300C High 1', '300C High 2', '300C High 3', '500C High']
     #validation_data = ['230C High']
 
     
-    highRegimeData, lowRegimeData = combineData(dir, calibration_datasets)
+    highRegimeData, lowRegimeData = combineData(dir, calibration_datasets, force_update=False)
 
     #high_fit = regress(highRegimeData, dir, total_iterations=1000000, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live")
-    high_fit = regress(highRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live") #multithread
+    high_fit = regress(highRegimeData, dir, total_iterations=its)
+    #high_fit = regress(highRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live") #multithread
     low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live") #multithread
 
     #low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live")
