@@ -22,11 +22,6 @@ setup(
 )
 
 setup(
-    name="lembox_scaling",
-    ext_modules=cythonize("core_scripts/lembox_scaling.pyx"),
-)
-
-setup(
     name="lembox",
     ext_modules=cythonize("core_scripts/lembox.pyx"),
 )

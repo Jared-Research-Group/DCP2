@@ -67,8 +67,8 @@ def scale_lembox(dir, save_cols=['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Curre
     df['Scaled_Voltage(V)'] = df['Voltage(V)'] * 10
     df['Scaled_Current(A)'] = df['Current(A)'] * 100
 
-    for i, t in enumerate(df['Timestamp']):
-        df['Timestamp'][i] = datetime.strptime(t[:-4], '%Y-%m-%d %H:%M:%S.%f')
+
+    df['Timestamp'] = [t[:-4] for t in df['Timestamp']]
 
     df = df[save_cols]
 
