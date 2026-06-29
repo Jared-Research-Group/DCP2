@@ -256,7 +256,8 @@ def combineData(dir, inclusions, validation=False, force_update=False):
     return (high_data['FLIR_intensity'], high_data['tc_temp(°K)'], high_data['experiment']), ((low_data['FLIR_intensity'], low_data['tc_temp(°K)'], low_data['experiment']))
 
 
-def regress(data, d,  batch_iterations=10000, total_iterations=800000, run_directory=None, flag_multiprocessing=False, **kwargs):
+
+def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_directory=None, flag_multiprocessing=False, **kwargs):
 
     # allow arbitrary modification of operators via kwargs
     binary_operators = ['+', '-', '*', '/']
@@ -304,12 +305,14 @@ def regress(data, d,  batch_iterations=10000, total_iterations=800000, run_direc
     # if no run directory is passed, start a new regressor
     else:
         
-        model = pysr.PySRRegressor(output_directory=(Path(d) / 'fits' / model_type), binary_operators=binary_operators, \
-                                   unary_operators=unary_operators,**regressor_args)
+        model = pysr.PySRRegressor(output_directory=(Path(dir) / 'fits' / model_type), binary_operators=binary_operators, \
+                                   unary_operators=unary_operators, **regressor_args)
         
         metadata = {}
         metadata['current_iterations'] = 0
         metadata['elapsed_time']       = 0
+        metadata['eqation_hist']       = []
+        metadata['loss_hist']          = []
         
     while metadata['current_iterations'] < total_iterations:
     
@@ -321,6 +324,9 @@ def regress(data, d,  batch_iterations=10000, total_iterations=800000, run_direc
         
         metadata['current_iterations'] += model.niterations
         metadata['elapsed_time']       += time.time() - start
+        
+        metadata['equation_hist'].append(model.sympy())
+        metadata['loss_hist']    .append(model.get_best().values())
         
         with open(Path(model.output_directory) / 'live' / 'iterations.yaml', 'w') as f:
             yaml.dump(metadata, f)
@@ -398,19 +404,11 @@ if __name__ == '__main__':
     #low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live")
 
     # read calibration curves from saved files
-    #high_fit = pysr.PySRRegressor()
+   #high_fit = pysr.PySRRegressor()
     #low_fit  = pysr.PySRRegressor()
-    #high_fit = high_fit.from_file(run_directory="D:/grad data/new_flir/fits/High/20260610_132656_8PN2bA", warm_start=True)
-    #print(high_fit.get_equation_file())
-    #high_fit.fit(pd.DataFrame({'FLIR_Intensity':highRegimeData[0]}), pd.DataFrame({'Thermocouple_Temperature(°K)':highRegimeData[1]}))
-    #low_fit = low_fit.from_file(run_directory="D:/grad data/new_flir/fits/Low/20260609_051032_KpBFxo", model_selection='best')
-    #high_fit = high_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best')
-    #high_fit = high_fit.from_file(run_directory=r"D:\grad data\new_flir\fits\High\20260622_092806_Qs9G0b", model_selection='best')
-    #low_fit = low_fit.from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best')
     
-    print('High Fit', high_fit.sympy())
-    #print('Low Fit', low_fit.sympy())
-    print()
+    #low_fit = low_fit.from_file(run_directory="D:/grad data/new_flir/fits/Low/20260609_051032_KpBFxo", model_selection='best')
+    #high_fit = high_fit.from_file(run_directory=r"D:\grad data\new_flir\fits\High\20260622_092806_Qs9G0b", model_selection='best')
 
     vali_data = []
     for data in validation_data:
