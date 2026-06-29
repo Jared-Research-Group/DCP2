@@ -193,6 +193,6 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-.c
-.cpp
-.pyd
+*.c
+*.cpp
+*.pyd
