@@ -19,7 +19,6 @@ from datetime import timedelta
 from thermography import getPixels, getFrameData, getHotFrame
 from data_manipulation import selectFolder, dfToCsv
 from batch_process import dataSearch
-from align_data import alignData
 
 # at which frame in the video can we start measuring useful temperature? (discovered manually, accounts for toaster oven door opening)
 start_frames = {'60C High':'150', '60C Low':'140', '90C High':'130', '90C Low':'150', '120C High':'140', '120C Low':'190', '150C High':'145', \
@@ -257,7 +256,8 @@ def combineData(dir, inclusions, validation=False, force_update=False):
     return (high_data['FLIR_intensity'], high_data['tc_temp(°K)'], high_data['experiment']), ((low_data['FLIR_intensity'], low_data['tc_temp(°K)'], low_data['experiment']))
 
 
-def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_directory=None, **kwargs):
+
+def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_directory=None, flag_multiprocessing=False, **kwargs):
 
     # allow arbitrary modification of operators via kwargs
     binary_operators = ['+', '-', '*', '/']
@@ -280,10 +280,23 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
     elif 'Low' in temp_regime[0]:
         model_type = 'Low'
 
+    experimental_optimization = True
+
+    regressor_args = { 'niterations': batch_iterations, 'batching': True, 'maxsize': 30, \
+            'run_id': 'live', 'parallelism': 'multithreading', 'warm_start': True, \
+            'bumper': experimental_optimization, 'turbo': experimental_optimization, \
+            'model_selection': 'best', 'annealing': True}
+    
+    if flag_multiprocessing:
+        regressor_args['parallelism'] = 'multiprocessing'
+        regressor_args['procs']       = 20
+        regressor_args['populations'] = 50
+
+
     # if we passed an existing run history as an arg, then load in this run history.
     if run_directory is not None:
         model = pysr.PySRRegressor()
-        model = model.from_file(run_directory=run_directory, warm_start=True) # warm_start allows us to pick up regression from where we left off
+        model = model.from_file(run_directory=run_directory, **regressor_args) # warm_start allows us to pick up regression from where we left off
 
         # read the number of iterations that have been performed on this regressor object previously.
         with open(Path(run_directory) / 'iterations.yaml', 'r') as f:
@@ -292,9 +305,8 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
     # if no run directory is passed, start a new regressor
     else:
         
-        model = pysr.PySRRegressor(binary_operators=binary_operators, unary_operators=unary_operators, \
-            niterations=batch_iterations, batching=True, maxsize=30, output_directory=(Path(dir) / 'fits' / model_type), \
-            run_id='live', parallelism='multithreading', warm_start=True)
+        model = pysr.PySRRegressor(output_directory=(Path(dir) / 'fits' / model_type), binary_operators=binary_operators, \
+                                   unary_operators=unary_operators, **regressor_args)
         
         metadata = {}
         metadata['current_iterations'] = 0
@@ -370,9 +382,12 @@ def validate_response(vali_data, window=300):
 
 if __name__ == '__main__':
     
-    dir = selectFolder()
+    if len(sys.argv) == 2:
+        dir = sys.argv[1]
+    else:
+        dir = selectFolder()
     
-    its = 500000
+    its = 800000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
@@ -383,10 +398,10 @@ if __name__ == '__main__':
     
     highRegimeData, lowRegimeData = combineData(dir, calibration_datasets)
 
-    #high_fit = regress(highRegimeData, dir, total_iterations=its, run_directory=r'D:\grad data\new_flir\fits\High\20260622_092806_Qs9G0b') # new run
+    #high_fit = regress(highRegimeData, dir, total_iterations=1000000, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live")
     high_fit = regress(highRegimeData, dir, total_iterations=its) #multithread
 
-    #low_fit = regress(lowRegimeData, dir, its)
+    #low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live")
 
     # read calibration curves from saved files
    #high_fit = pysr.PySRRegressor()

@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 import helper_functions
 
@@ -66,11 +67,16 @@ def scale_lembox(dir, save_cols=['Timestamp', 'Scaled_Voltage(V)', 'Scaled_Curre
     df['Scaled_Voltage(V)'] = df['Voltage(V)'] * 10
     df['Scaled_Current(A)'] = df['Current(A)'] * 100
 
+    for i, t in enumerate(df['Timestamp']):
+        df['Timestamp'][i] = datetime.strptime(t[:-4], '%Y-%m-%d %H:%M:%S.%f')
+
     df = df[save_cols]
 
     # Save back to the same file
     df.to_csv(output_file, index=False)
     logger.info(f"Scaling complete. New file created: {output_file}")
+
+    return df
         
 
 if __name__ == '__main__':
