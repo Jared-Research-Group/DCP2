@@ -1,15 +1,16 @@
 import sys
 import subprocess
 import os
+from pathlib import Path
 
 from data_manipulation import selectFolder
 from align_data import alignData
 from batch_process import dataSearch
 
 def batchit(dir):
-    dir = dir.path
+    dir = Path(dir)
 
-    subprocess.run([sys.executable, os.getcwd() + '\\Data_Processing.py', dir], check=True)
+    #subprocess.run([sys.executable, os.getcwd() + '\\Data_Processing.py', dir], check=True)
 
     print()
     
