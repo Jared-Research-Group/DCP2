@@ -288,7 +288,7 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
             'run_id': 'live', 'parallelism': 'multithreading', 'warm_start': True, \
             'bumper': experimental_optimization, 'turbo': experimental_optimization, \
             'model_selection': 'best', 'annealing': True, 'weight_optimize': 0.001, \
-            'warmup_maxsize_by':0, 'parsimony': 0.005, 'populations': 60, \
+            'warmup_maxsize_by':0, 'parsimony': 0.0001, 'populations': 60, \
             'adaptive_parsimony_scaling': 1500, 'maxdepth': 10}
     
     if flag_multiprocessing:
@@ -397,8 +397,6 @@ if __name__ == '__main__':
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
     
     validation_data = ['250C High', '300C High 1', '300C High 2', '300C High 3', '500C High']
-    #validation_data = ['230C High']
-
     
     highRegimeData, lowRegimeData = combineData(dir, calibration_datasets, force_update=False)
 
