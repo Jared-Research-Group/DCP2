@@ -19,7 +19,7 @@ from sympy.abc import x
 from datetime import timedelta
 
 from thermography import getPixels, getFrameData, getHotFrame
-from data_manipulation import selectFolder, dfToCsv
+from helper_functions import selectFolder
 from batch_process import dataSearch
 
 # at which frame in the video can we start measuring useful temperature? (discovered manually, accounts for toaster oven door opening)
@@ -113,10 +113,10 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
             df.reset_index(inplace=True)
 
             # save windowed data to new .csv for later manipulation
-            dfToCsv(df, os.path.split(dir)[0] + '/' + temp_regime + '.csv')
+            df.to_csv(os.path.split(dir)[0] + '/' + temp_regime + '.csv', index=False)
 
         else:
-            dfToCsv(df, os.path.split(dir)[0] + '/' + temp_regime + '_unwindowed.csv')
+            df.to_csv(os.path.split(dir)[0] + '/' + temp_regime + '_unwindowed.csv', index=False)
 
     # if windowed data is already saved, just load it from the file
     else:
@@ -245,7 +245,7 @@ def combineData(dir, inclusions, validation=False, force_update=False):
             df = pd.concat([df, df_additions], ignore_index=True)
 
         dataSearch(dir, getDataSubset)
-        dfToCsv(df, dir + '/Combined_Calibration_Data.csv')
+        df.to_csv(dir + '/Combined_Calibration_Data.csv', index=False)
     else:
         df = pd.read_csv(dir + '/Combined_Calibration_Data.csv')
 
@@ -284,7 +284,7 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
 
     experimental_optimization = True
 
-    regressor_args = { 'niterations': batch_iterations, 'batching': True, 'maxsize': 30, \
+    regressor_args = { 'niterations': batch_iterations, 'batching': True, 'maxsize': 35, \
             'run_id': 'live', 'parallelism': 'multithreading', 'warm_start': True, \
             'bumper': experimental_optimization, 'turbo': experimental_optimization, \
             'model_selection': 'best', 'annealing': True, 'weight_optimize': 0.001, \
@@ -391,7 +391,7 @@ if __name__ == '__main__':
     else:
         dir = selectFolder()
     
-    its = 50000
+    its = 200000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
@@ -402,7 +402,7 @@ if __name__ == '__main__':
 
     #high_fit = regress(highRegimeData, dir, total_iterations=1000000, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live")
     #high_fit = regress(highRegimeData, dir, total_iterations=its)
-    high_fit = regress(highRegimeData, dir, total_iterations=its, run_directory=r"D:\grad data\new_flir\fits\High\live") #multithread
+    high_fit = regress(highRegimeData, dir, total_iterations=its, run_directory=r"D:\grad data\flir_1s\fits\High\live") #multithread
     low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live") #multithread
 
     #low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live")

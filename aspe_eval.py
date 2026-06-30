@@ -136,39 +136,53 @@ def getPyroData(dir, recalc_temps=False, window_length=10):
 
     return (df['Pyrometer_Temp(°C)'], df['Channel_' + str(channel_num) + '(°C)'], run_name)  
 
-def combineData(dir, force_update=False):
+def combineFlirData(dir, force_update=False):
 
     if not os.access(dir + '/Combined_FLIR_Data.csv', os.R_OK) or not os.access(dir + '/Combined_Pyro_Data.csv', os.R_OK) or force_update:
-        flir_df = pd.DataFrame({'FLIR_intensity':pd.Series(dtype='float64'), 'tc_temp(°C)':pd.Series(dtype='float64'), 'experiment':pd.Series(dtype='str')})
-        pyro_df = pd.DataFrame({'pyro_temp(°C)':pd.Series(dtype='float64'), 'tc_temp(°C)':pd.Series(dtype='float64'), 'experiment':pd.Series(dtype='str')})
+        df = pd.DataFrame({'FLIR_intensity':pd.Series(dtype='float64'), 'tc_temp(°C)':pd.Series(dtype='float64'), 'experiment':pd.Series(dtype='str')})
 
         def getDataSubset(d):
             nonlocal df
 
-            if d.parent[3].name == 'flir':
-                flir_intensity, tc_temp, run_name = getFlirData(d, False, recalc_temps=force_update)
-                experiment_name = pd.Series(run_name, index=range(len(flir_intensity)))
-                df_additions = pd.DataFrame({'FLIR_intensity':flir_intensity, 'tc_temp(°C)':tc_temp, 'experiment':experiment_name})
-                flir_df = pd.concat([flir_df, df_additions], ignore_index=True)
-
-            elif d.parent[3].name == 'pyro':
-                pyro_temp, tc_temp, run_name = getPyroData(d, force_update)
-                experiment_name = pd.Series(run_name, index=range(len(pyro_temp)))
-                df_additions = pd.DataFrame({'pyro_temp(°C)':flir_intensity, 'tc_temp(°C)':tc_temp, 'experiment':experiment_name})
-                pyro_df = pd.concat([pyro_df, df_additions], ignore_index=True)
+            flir_intensity, tc_temp, run_name = getFlirData(d, False, recalc_temps=force_update)
+            experiment_name = pd.Series(run_name, index=range(len(flir_intensity)))
+            df_additions = pd.DataFrame({'FLIR_intensity':flir_intensity, 'tc_temp(°C)':tc_temp, 'experiment':experiment_name})
+            df = pd.concat([df, df_additions], ignore_index=True)
 
         dataSearch(dir, getDataSubset)
-        dfToCsv(df, dir + '/Combined_Calibration_Data.csv')
+        df.to_csv( dir / 'Combined_FLIR_Data.csv')
+        
     else:
-        df = pd.read_csv(dir + '/Combined_Calibration_Data.csv')
+        df = pd.read_csv(dir + '/Combined_FLIR_Data.csv')
 
-    high_data = df.loc[df['experiment'].str.contains('High') & df['experiment'].isin(inclusions)]
-    high_data.reset_index(inplace=True)
+    df.reset_index(inplace=True)
 
-    low_data = df.loc[df['experiment'].str.contains('Low') & df['experiment'].isin(inclusions)]
-    low_data.reset_index(inplace=True)
 
-    return (high_data['FLIR_intensity'], high_data['tc_temp(°K)'], high_data['experiment']), ((low_data['FLIR_intensity'], low_data['tc_temp(°K)'], low_data['experiment']))
+    return df['FLIR_intensity'], df['tc_temp(°K)'], df['experiment']
+
+def combinePyroData(dir, force_update=False):
+
+    if not os.access(dir + '/Combined_Pyro_Data.csv', os.R_OK) or not os.access(dir + '/Combined_Pyro_Data.csv', os.R_OK) or force_update:
+        df = pd.DataFrame({'pyro_temp(°C)':pd.Series(dtype='float64'), 'tc_temp(°C)':pd.Series(dtype='float64'), 'experiment':pd.Series(dtype='str')})
+
+        def getDataSubset(d):
+            nonlocal df
+
+            pyro_temp, tc_temp, run_name = getPyroData(d, recalc_temps=force_update)
+            experiment_name = pd.Series(run_name, index=range(len(pyro_temp)))
+            df_additions = pd.DataFrame({'pyro_temp(°C)':pyro_temp, 'tc_temp(°C)':tc_temp, 'experiment':experiment_name})
+            df = pd.concat([df, df_additions], ignore_index=True)
+
+        dataSearch(dir, getDataSubset)
+        dfToCsv(df, dir + '/Combined_Pyro_Data.csv')
+        
+    else:
+        df = pd.read_csv(dir + '/Combined_Pyro_Data.csv')
+
+    df.reset_index(inplace=True)
+
+
+    return df['pyro_temp(°C))'], df['tc_temp(°C)'], df['experiment']
 
 if __name__ == '__main__':
     
@@ -177,9 +191,7 @@ if __name__ == '__main__':
     else:
         dir = selectFolder()
     
-    its = 50000
-    
-    highRegimeData, lowRegimeData = combineData(dir, calibration_datasets, force_update=False)
+
     
     
 
