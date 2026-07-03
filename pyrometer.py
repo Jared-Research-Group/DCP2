@@ -61,7 +61,8 @@ def getPyrometerData(dir):
     if 'TimeStamp Adjust' in df.columns:
         return df['TimeStamp Adjust'], df['rolling_avg_C']
     else:
-        return df['timestamp'] + timedelta(hours=1), df['rolling_avg_C']
+        #return df['timestamp'] + timedelta(hours=1), df['rolling_avg_C']
+        return df['timestamp'], df['rolling_avg_C']
 
 
 

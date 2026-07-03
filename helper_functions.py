@@ -246,13 +246,13 @@ def setup_directory_structure(dir, input_file, output_files, **kwargs):
 
 # data must be np.array!
 def flirConversion(data, model):
-    temps = np.zeros(data.shape)
+    #temps = np.zeros(data.shape)
 
-    count = 1
-    for i, intensity in tqdm(np.ndenumerate(data)):
-        temps[i] = model(float(intensity)) - 273.15
 
-        count += 1
+#    for i, intensity in tqdm(np.ndenumerate(data)):
+#        temps[i] = model(float(intensity)) - 273.15
+
+    temps = model(data) - 273.15
     return temps
 
 class CaseSelectionDialog(simpledialog.Dialog):

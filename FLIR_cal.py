@@ -6,6 +6,7 @@ import os
 import time
 import yaml
 from pathlib import Path
+import sklearn.preprocessing as sk
 
 import random
 
@@ -138,90 +139,113 @@ def getCalData(dir, validate_pixel=True, reselect_zone=False, recalc_temps=False
 # requires input arrays nested in tuples, allows for multiple datasets at once
 def plotCalCurve(data, fit=None, vali_data=None):
 
-    plt.figure(layout='constrained', figsize=[3, 3])
-    for i, series in enumerate(data):
-        flir_intensity, tc_temp, temp_regime = series
+    plt.figure(layout='constrained', figsize=[4, 3])
+            
+    flir_intensity, tc_temp, temp_regime = data[0]
 
-        tc_temp -= 273.15        # convert back to °C
-        """
-        if len(data) == 1:
-            plt.scatter(flir_intensity, tc_temp, color='blue', label='Measured Values', s=20)
-        elif (str(temp_regime.iloc[0])[-4:]).strip() == 'High':
-            plt.scatter(flir_intensity, tc_temp, color='blue', label=str('Measured Values  (' + (str(temp_regime.iloc[0])[-4:]).strip() +')'), s=20)
-        else:
-            plt.scatter(flir_intensity, tc_temp, color='#41c62f', label=str('Measured Values  (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')'), s=20, marker='s')
-        """
-
-        """
-        if fit is not None:
-            series_fit = fit[i]
-
-            rng = 2**16 - 1
-            fit_intensity = np.linspace(0, 2**16-1, 10000)
-
-            if type(series_fit) == pysr.PySRRegressor:
-                fit_vals = series_fit.predict(fit_intensity.reshape(-1, 1))
-                fit_str = str(series_fit.sympy())
-            else:
-                fit_str = str(series_fit)
-                series_fit = sympy.lambdify(x, series_fit, "numpy")
-                fit_vals = series_fit(fit_intensity)
-
-
-            fit_vals -= 273.15  # convert back to °C
-
-            if len(data) == 1:
-                plt.plot(fit_intensity, fit_vals, color='orange', label=('Calibration Curve: ' + fit_str), linewidth=4, alpha=.7)
-            elif (str(temp_regime.iloc[0])[-4:]).strip() == 'High':
-                #plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve ' + (str(temp_regime.iloc[0])[-4:]).strip()) + ': ' + fit_str))
-                plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')')), linewidth=4, alpha=.7)
-            else:
-                #plt.plot(fit_intensity, fit_vals, color='purple', label=(str('Calibration Curve ' + (str(temp_regime.iloc[0])[-4:]).strip()) + ': ' + fit_str))
-                plt.plot(fit_intensity, fit_vals, color='purple', label=(str('Calibration Curve (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')')), linewidth=4, alpha=.7, ls='-.')
-            """
+    tc_temp -= 273.15        # convert back to °C
             
     series_fit = fit
 
     rng = 2**16 - 1
-    fit_intensity = np.linspace(0, 2**16-1, 10000)
+    fit_intensity = np.arange(0, 2**16, 1)
 
     if type(series_fit) == pysr.PySRRegressor:
-        fit_vals = series_fit.predict(fit_intensity.reshape(-1, 1))
-        fit_str = str(series_fit.sympy())
+        
+        #fit_vals = series_fit.predict(fit_intensity.reshape(-1, 1))
+        fit_str = str(series_fit.sympy(11))
+        print(series_fit.equations)
+        
+        x = sympy.Symbol('FLIR_Intensity')
+        
+        fit_alt    = sympy.lambdify(x, series_fit.sympy())
+        series_fit = sympy.lambdify(x, series_fit.sympy(11))
+        
+        #fit_alt    = sympy.lambdify(x, series_fit.sympy(9))
+        #series_fit = sympy.lambdify(x, series_fit.sympy())
+        fit_vals = series_fit(fit_intensity)
+        print(fit_str)
+        
+        print(fit)
+        
     else:
         fit_str = str(series_fit)
         series_fit = sympy.lambdify(x, series_fit, "numpy")
         fit_vals = series_fit(fit_intensity)
 
-
+    alt_fit_vals = fit_alt(fit_intensity) - 273.15
     fit_vals -= 273.15  # convert back to °C
 
-    plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve (High)')), linewidth=4, alpha=.4)  
+    plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve (High Temp.)')), linewidth=4, alpha=.4) 
+    #plt.plot(fit_intensity, alt_fit_vals, color='red', label=(str('Alternate Calibration Curve')), linewidth=4, alpha=.4) 
+    plt.scatter(flir_intensity, tc_temp, color='blue', label='Calibration Training Data', s=10) 
+    polynomial_fit(data[1], deg=2, label='Poly. Fit: Degree 2')
+    polynomial_fit(data[1], deg=3, label='Poly. Fit: Degree 3')
+    polynomial_fit(data[1], deg=4, label='Poly. Fit: Degree 4')
+    
+    #plt.plot(fit_intensity, abs(fit_vals - alt_fit_vals), linewidth=2)
+    #plt.title('Absolute Difference in Potential Fits')
             
+    '''
     if vali_data is not None:
+
         for i, data in enumerate(vali_data):
             vali_intensity, vali_temp, vali_name = data
             vali_temp -= 273.15
 
             #plt.scatter(vali_intensity, vali_temp, label='Validation Curve ' + str(i), s=0.05)
-            if i == 0:
-                plt.scatter(vali_intensity, vali_temp, label='Validation Curves', s=0.075)
-            else:
-                plt.scatter(vali_intensity, vali_temp, label='_Validation Curve', s=0.075)
-    
+            
+            plt.title('Electric Heating Element Test')
+            #plt.title('FLIR High Temp. Validation Experiments')
+            
+            if '500' in vali_name[0]:
+                    plt.scatter(vali_intensity, vali_temp, s=0.075, label='Electric Heating Element Experiment', alpha=.7)
+            
+            #if not '500' in vali_name[0]:
+            #    plt.plot(vali_intensity, vali_temp, label = 'Experiment ' + str(i + 1), alpha=.7)
+
+
+        vali_error = []
+        vali_mse   = []
+        for i, data in enumerate(vali_data):
+            vali_intensity, vali_temp, vali_name = data #(stays in kelvin)
+            
+            error = (((series_fit(vali_intensity)) - vali_temp) / vali_temp) * 100
+            vali_error.append(error)
+            
+            vali_mse.append(np.average(error**2))
+            
+            plt.title('Validation Curve Error')
+            #plt.xticks(np.arange(8) * 5000 + 5000)
+            
+            if not '500' in vali_name[0]:
+                plt.scatter(vali_temp - 273.15, error, s=0.075, label = 'Experiment ' + str(i + 1))
+    '''
+
     if len(data) > 1 or fit is not None or vali_data is not None:
         leg = plt.legend(fontsize=8)
         for l in leg.legend_handles:
             l._sizes = [80]
-    plt.xlabel('FLIR Raw Intensity '  + r'Value [0:$2^{16}-1$]', fontsize=8)
-    plt.ylabel('Thermocouple\nTemperature (°C)', fontsize=8)
+
+
+    
+    #plt.xlabel('Thermocouple Temperature (°C)', fontsize=10)
+    plt.xlabel('FLIR Raw Intensity '  + r'Value [0:$2^{16}-1$]', fontsize=10)
+    #plt.ylabel('Relative Error (%)')
+    plt.ylabel('Temperature (°C)', fontsize=10)
     plt.xticks(fontsize=8)
     plt.yticks(fontsize=8)
 
     plt.ylim(-150, 1100)
+    #plt.ylim(0, 200)
+    #plt.ylim(-50, 250)
+    plt.xlim(0, 70000)
     #plt.ylim(0, 600)
-    #plt.xlim(0, 40000)
+    #plt.xlim(5000, 40000)
+    plt.grid(True)
+    
     plt.show()
+    
 
     return
 
@@ -284,12 +308,12 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
 
     experimental_optimization = True
 
-    regressor_args = { 'niterations': batch_iterations, 'batching': True, 'maxsize': 35, \
+    regressor_args = { 'niterations': batch_iterations, 'batching': True, 'maxsize': 30, \
             'run_id': 'live', 'parallelism': 'multithreading', 'warm_start': True, \
             'bumper': experimental_optimization, 'turbo': experimental_optimization, \
             'model_selection': 'best', 'annealing': True, 'weight_optimize': 0.001, \
-            'warmup_maxsize_by':0, 'parsimony': 0.0001, 'populations': 60, \
-            'adaptive_parsimony_scaling': 1500, 'maxdepth': 10}
+            'warmup_maxsize_by':0.25, 'parsimony': 0.001, 'populations': 60, \
+            'adaptive_parsimony_scaling': 1500, 'maxdepth': 10, 'denoise': False}
     
     if flag_multiprocessing:
         regressor_args['parallelism'] = 'multiprocessing'
@@ -384,6 +408,13 @@ def validate_response(vali_data, window=300):
 
     return
 
+def polynomial_fit(dat, deg=3, label = None):
+    flir_intensity, tc_temp, temp_regime = dat
+    
+    fitted_data =  np.polynomial.polynomial.Polynomial.fit(flir_intensity, tc_temp, deg=deg, domain=[0, 2**16])
+    
+    plt.plot(np.arange(2**16), fitted_data(np.arange(2**16)), label = label)
+
 if __name__ == '__main__':
     
     if len(sys.argv) == 2:
@@ -391,7 +422,7 @@ if __name__ == '__main__':
     else:
         dir = selectFolder()
     
-    its = 200000
+    its = 100000
 
     calibration_datasets = ['Cold High', 'Cold Low', 'Ambient High', 'Ambient Low', '60C High', '60C Low', '90C High', '90C Low', \
                             '120C High', '120C Low', '150C High', '150C Low', '180C High', '180C Low', '215C High', '230C High']
@@ -402,17 +433,17 @@ if __name__ == '__main__':
 
     #high_fit = regress(highRegimeData, dir, total_iterations=1000000, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live")
     #high_fit = regress(highRegimeData, dir, total_iterations=its)
-    high_fit = regress(highRegimeData, dir, total_iterations=its, run_directory=r"D:\grad data\flir_1s\fits\High\live") #multithread
-    low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live") #multithread
+    #high_fit = regress(highRegimeData, dir, total_iterations=its, run_directory=r"D:\grad data\flir_1s\fits\High\live") #multithread
+    #low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live") #multithread
 
     #low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live")
 
     # read calibration curves from saved files
-   #high_fit = pysr.PySRRegressor()
-    #low_fit  = pysr.PySRRegressor()
+    high_fit = pysr.PySRRegressor()
+    low_fit  = pysr.PySRRegressor()
     
-    #low_fit = low_fit.from_file(run_directory="D:/grad data/new_flir/fits/Low/20260609_051032_KpBFxo", model_selection='best')
-    #high_fit = high_fit.from_file(run_directory=r"D:\grad data\new_flir\fits\High\20260622_092806_Qs9G0b", model_selection='best')
+    low_fit = low_fit.from_file(run_directory=r"D:\grad data\new_flir\fits\Low\live", model_selection='best')
+    high_fit = high_fit.from_file(run_directory=r"D:\grad data\new_flir\fits\GREAT BUT 10s\live", model_selection='best')
 
     vali_data = []
     for data in validation_data:
@@ -426,6 +457,8 @@ if __name__ == '__main__':
     #plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit), vali_data)
         
     plotCalCurve((highRegimeData, lowRegimeData), (high_fit), vali_data)
+        
+    #plotCalCurve((highRegimeData, lowRegimeData), (high_fit), vali_data)
     #plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit))
 
     '''

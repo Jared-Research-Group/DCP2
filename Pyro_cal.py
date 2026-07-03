@@ -23,7 +23,7 @@ from batch_process import dataSearch
 validation_datasets = []
 
 # read FLIR temp data from selected pixels & frames, add this thermal data to aligned data csv. returns + saves windowed dataframe
-def getCalData(dir, recalc_temps=False, window_length=5, needTimes=False):
+def getCalData(dir, recalc_temps=False, window_length=10, needTimes=False):
     # if data isn't stored, calculate it
 
     dir = Path(dir)
@@ -55,7 +55,7 @@ def getCalData(dir, recalc_temps=False, window_length=5, needTimes=False):
         else:
             df = pd.read_csv(dir.parent / (temp_regime + '_unwindowed.csv'))
 
-    channel_num = 0
+    channel_num = 3
 
     if needTimes:
         return (df['Channel_' + str(channel_num) + '(°C)'], df['Pyrometer_Temp(°C)'], temp_regime, df['time'])
@@ -65,65 +65,47 @@ def getCalData(dir, recalc_temps=False, window_length=5, needTimes=False):
 # requires input arrays nested in tuples, allows for multiple datasets at once
 def plotCalCurve(data, fit=None, vali_data=None):
 
-    plt.figure(layout='constrained', figsize=[3, 3])
-    for i, series in enumerate(data):
-        flir_intensity, tc_temp, temp_regime = series
+    plt.figure(layout='constrained', figsize=[4, 3])
 
-        tc_temp -= 273.15        # convert back to °C
-        """
-        if len(data) == 1:
-            plt.scatter(flir_intensity, tc_temp, color='blue', label='Measured Values', s=20)
-        elif (str(temp_regime.iloc[0])[-4:]).strip() == 'High':
-            plt.scatter(flir_intensity, tc_temp, color='blue', label=str('Measured Values  (' + (str(temp_regime.iloc[0])[-4:]).strip() +')'), s=20)
-        else:
-            plt.scatter(flir_intensity, tc_temp, color='#41c62f', label=str('Measured Values  (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')'), s=20, marker='s')
-        """
+    pyro_temp, tc_temp, temp_regime = data
 
-        """
-        if fit is not None:
-            series_fit = fit[i]
-
-            rng = 2**16 - 1
-            fit_intensity = np.linspace(0, 2**16-1, 10000)
-
-            if type(series_fit) == pysr.PySRRegressor:
-                fit_vals = series_fit.predict(fit_intensity.reshape(-1, 1))
-                fit_str = str(series_fit.sympy())
-            else:
-                fit_str = str(series_fit)
-                series_fit = sympy.lambdify(x, series_fit, "numpy")
-                fit_vals = series_fit(fit_intensity)
-
-
-            fit_vals -= 273.15  # convert back to °C
-
-            if len(data) == 1:
-                plt.plot(fit_intensity, fit_vals, color='orange', label=('Calibration Curve: ' + fit_str), linewidth=4, alpha=.7)
-            elif (str(temp_regime.iloc[0])[-4:]).strip() == 'High':
-                #plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve ' + (str(temp_regime.iloc[0])[-4:]).strip()) + ': ' + fit_str))
-                plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')')), linewidth=4, alpha=.7)
-            else:
-                #plt.plot(fit_intensity, fit_vals, color='purple', label=(str('Calibration Curve ' + (str(temp_regime.iloc[0])[-4:]).strip()) + ': ' + fit_str))
-                plt.plot(fit_intensity, fit_vals, color='purple', label=(str('Calibration Curve (' + (str(temp_regime.iloc[0])[-4:]).strip() + ')')), linewidth=4, alpha=.7, ls='-.')
-            """
+    #tc_temp -= 273.15        # convert back to °C
             
     series_fit = fit
 
-    rng = 2**16 - 1
-    fit_intensity = np.linspace(0, 2**16-1, 10000)
+    fit_temp = np.linspace(0, 20000, 20000)
 
     if type(series_fit) == pysr.PySRRegressor:
-        fit_vals = series_fit.predict(fit_intensity.reshape(-1, 1))
-        fit_str = str(series_fit.sympy())
+        #fit_vals = series_fit.predict(fit_temp.reshape(-1, 1))
+        fit_str = str(series_fit.sympy(7))
+        print(series_fit)
+        
+        
+        
+        x = sympy.Symbol('Pyrometer_Temperature')
+        
+        # 11, 10 bad case
+        fit_alt    = sympy.lambdify(x, series_fit.sympy(11))
+        fit_alt2    = sympy.lambdify(x, series_fit.sympy(10))
+        
+        series_fit = sympy.lambdify(x, series_fit.sympy(7))
+        fit_vals = series_fit(fit_temp)
+        print(fit_str)
     else:
         fit_str = str(series_fit)
         series_fit = sympy.lambdify(x, series_fit, "numpy")
-        fit_vals = series_fit(fit_intensity)
+        fit_vals = series_fit(fit_temp)
 
 
-    fit_vals -= 273.15  # convert back to °C
+    #fit_vals -= 273.15  # convert back to °C
+    alt_fit_vals = fit_alt(fit_temp)
+    alt_fit_vals2 = fit_alt2(fit_temp)
 
-    plt.plot(fit_intensity, fit_vals, color='orange', label=(str('Calibration Curve (High)')), linewidth=4, alpha=.4)  
+    plt.plot(fit_temp, fit_vals, color='orange', label=(str('Calibration Curve')), linewidth=4, alpha=.4)
+    plt.plot(fit_temp, alt_fit_vals, color='red', label=(str('1st Alternate Calibration Curve')), linewidth=4, alpha=.4)
+    plt.plot(fit_temp, alt_fit_vals2, color='green', label=(str('2nd Alternate Calibration Curve')), linewidth=4, alpha=.4)
+
+    plt.scatter(pyro_temp, tc_temp, color='blue', label='Calibration Training Data', s=10 )  
             
     if vali_data is not None:
         for i, data in enumerate(vali_data):
@@ -140,12 +122,15 @@ def plotCalCurve(data, fit=None, vali_data=None):
         leg = plt.legend(fontsize=8)
         for l in leg.legend_handles:
             l._sizes = [80]
-    plt.xlabel('FLIR Raw Intensity '  + r'Value [0:$2^{16}-1$]', fontsize=8)
+    plt.xlabel('Raw Pyrometer Temperature (°C)', fontsize=8)
     plt.ylabel('Thermocouple\nTemperature (°C)', fontsize=8)
     plt.xticks(fontsize=8)
     plt.yticks(fontsize=8)
+    
+    plt.grid(True)
 
-    plt.ylim(-150, 1100)
+    plt.ylim(-50, 500)
+    plt.xlim(0, 1000)
     #plt.ylim(0, 600)
     #plt.xlim(0, 40000)
     plt.show()
@@ -156,7 +141,7 @@ def combineData(dir, inclusions, validation=False, force_update=False):
     dir = Path(dir)
 
     if not os.access(dir / 'Combined_Calibration_Data.csv', os.R_OK) or force_update:
-        df = pd.DataFrame({'pyro_temp(°K)':pd.Series(dtype='float64'), 'tc_temp(°K)':pd.Series(dtype='float64'), 'experiment':pd.Series(dtype='str')})
+        df = pd.DataFrame({'pyro_temp(°C)':pd.Series(dtype='float64'), 'tc_temp(°C)':pd.Series(dtype='float64'), 'experiment':pd.Series(dtype='str')})
 
         def getDataSubset(d):
             nonlocal df
@@ -165,16 +150,13 @@ def combineData(dir, inclusions, validation=False, force_update=False):
                 tc_temp, pyro_temp, temp_regime = getCalData(d, False, False, False, -1)
             else:
                 tc_temp, pyro_temp, temp_regime = getCalData(d, False)
-                
-            tc_temp = tc_temp + 273.15 # convert to kelvin
-            pyro_temp = pyro_temp + 273.15
 
             experiment_name = pd.Series(temp_regime, index=range(len(pyro_temp)))
-            df_additions = pd.DataFrame({'pyro_temp(°K)':pyro_temp, 'tc_temp(°K)':tc_temp, 'experiment':experiment_name})
+            df_additions = pd.DataFrame({'pyro_temp(°C)':pyro_temp, 'tc_temp(°C)':tc_temp, 'experiment':experiment_name})
 
             df = pd.concat([df, df_additions], ignore_index=True)
 
-        dataSearch(dir, getDataSubset)
+        dataSearch(dir, getDataSubset, id='deg', id_atFront=False)
         df.to_csv(dir / 'Combined_Calibration_Data.csv', index=False)
     else:
         df = pd.read_csv(dir / 'Combined_Calibration_Data.csv')
@@ -182,7 +164,7 @@ def combineData(dir, inclusions, validation=False, force_update=False):
     data = df.loc[df['experiment'].isin(inclusions)]
     data.reset_index(inplace=True)
 
-    return (data['pyro_temp(°K)'], data['tc_temp(°K)'], data['experiment'])
+    return (data['pyro_temp(°C)'], data['tc_temp(°C)'], data['experiment'])
 
 
 
@@ -207,12 +189,17 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
     regressor_args = { 'niterations': batch_iterations, 'batching': True, 'maxsize': 30, \
             'run_id': 'live', 'parallelism': 'multithreading', 'warm_start': True, \
             'bumper': experimental_optimization, 'turbo': experimental_optimization, \
-            'model_selection': 'best', 'annealing': True, 'parsimony': .2, 'adaptive_parsimony_scaling': 2000}
+            'model_selection': 'best', 'annealing': True, 'weight_optimize': 0.001, \
+            'warmup_maxsize_by':0.1, 'parsimony': 0.05, 'populations': 60, \
+            'adaptive_parsimony_scaling': 1500, 'maxdepth': 10, 'denoise': False}
     
     if flag_multiprocessing:
         regressor_args['parallelism'] = 'multiprocessing'
         regressor_args['procs']       = 20
         regressor_args['populations'] = 50
+        
+    if '^' in binary_operators:
+        regressor_args['constraints'] = { '^': (-1, 1)}
 
 
     # if we passed an existing run history as an arg, then load in this run history.
@@ -257,52 +244,6 @@ def regress(data, dir,  batch_iterations=1000, total_iterations=150000, run_dire
 
     return model
 
-# currently doing a weird reversed semi-log to validate 120C High
-def validate_response(vali_data, window=300):
-    vali_intensity, vali_temp, temp_regime, vali_time = vali_data
-
-    #vali_intensity = vali_intensity[::-1]
-    #vali_temp = vali_temp[::-1]
-
-    fig, ax1 = plt.subplots(layout='constrained')
-    ax1.scatter(vali_time[window:-window], vali_temp[window:-window], label='TC Curve', alpha=0.5, c='red')
-    ax1.set_xlabel('time (s)')
-    ax1.set_ylabel('Value Normalized to Thermocouple Temperature (°C)')
-    ax1.tick_params(axis='y', labelcolor='red')
-
-    #ax1.set_xscale('log')
-   
-    ax1.scatter(vali_time[window:-window], (vali_intensity[window:-window] * max(vali_temp[window:-window]))/max(vali_intensity[window:-window]), label='FLIR Intensity', alpha=0.5, c='blue')
-
-    fig.legend()
-    plt.show()
-
-    def fd(y, x, i, step=10):
-        return (y[i+step] - y[i])/(x[i+step] - x[i])
-
-    d_intensity = []
-    d_temp = []
-    step = 25
-    for i, t in enumerate(vali_intensity[:-step]):
-        d_intensity.append(fd(vali_intensity, vali_time, i, step))
-        d_temp.append(fd(vali_temp, vali_time, i, step))
-
-    d_temp = np.array(d_temp)
-    d_intensity = np.array(d_intensity)
-
-    fig, ax1 = plt.subplots(layout='constrained')
-    ax1.scatter(vali_time[window:-window - step], d_temp[window:-window], label='TC Curve', alpha=0.5, s=5, c='red')
-    ax1.set_xlabel('time (s)')
-    ax1.set_ylabel('Value Normalized to Thermocouple Heating Rate (°C/s)')
-    ax1.tick_params(axis='y', labelcolor='red')
-
-    ax1.scatter(vali_time[window:-window - step], (d_intensity[window:-window] * max(abs(d_temp[window:-window])))/max(abs(d_intensity[window:-window])), label='FLIR Intensity', alpha=0.5, s=5, c='blue')
-
-    fig.legend()
-    plt.show()
-
-    return
-
 if __name__ == '__main__':
     
     if len(sys.argv) == 2:
@@ -310,28 +251,25 @@ if __name__ == '__main__':
     else:
         dir = selectFolder()
     
-    its = 250000
+    its = 100000
 
-    calibration_datasets = ['data_collection_20260331_145851', 'data_collection_20260331_150208', 'data_collection_20260331_150516', 'data_collection_20260331_150916', 'data_collection_20260331_151325',
-                            'data_collection_20260331_151701', 'data_collection_20260331_152125', 'data_collection_20260331_152423', 'data_collection_20260331_152825', 'data_collection_20260331_153059', 
-                            'data_collection_20260331_153347', 'data_collection_20260331_153853', 'data_collection_20260331_154356', 'data_collection_20260331_154938', 'data_collection_20260331_155504',
-                            ]#'data_collection_20260421_150746']
+    calibration_datasets = ['60deg', '90deg', '120deg', '130deg', '150deg', '180deg', '205deg', '210deg', 'ambdeg']
     
     validation_data = []
 
     
-    data = combineData(dir, calibration_datasets)
+    data = combineData(dir, calibration_datasets, force_update=False)
+    
+    #fit = regress(data, dir, total_iterations=its, run_directory=r"D:\grad data\pyrometer cal no flir\fits\live") #multithread
 
-    #high_fit = regress(highRegimeData, dir, total_iterations=1000000, run_directory=r"D:\MASON\Data\FLIR_cal\fits\High\live")
-    fit = regress(data, dir, total_iterations=its, run_directory=r"D:\grad data\pyrometer cal no flir\fits\live") #multithread
+    fit = regress(data, dir, total_iterations=its, run_directory=r"D:\grad data\new pyro cal\fits\live")
 
-    #low_fit = regress(lowRegimeData, dir, total_iterations=its, run_directory=r"D:\MASON\Data\FLIR_cal\fits\Low\live")
 
     # read calibration curves from saved files
    #high_fit = pysr.PySRRegressor()
-    #low_fit  = pysr.PySRRegressor()
+    #fit  = pysr.PySRRegressor()
     
-    #low_fit = low_fit.from_file(run_directory="D:/grad data/new_flir/fits/Low/20260609_051032_KpBFxo", model_selection='best')
+    #fit = fit.from_file(run_directory=r"D:\grad data\new pyro cal\fits\live", model_selection='best')
     #high_fit = high_fit.from_file(run_directory=r"D:\grad data\new_flir\fits\High\20260622_092806_Qs9G0b", model_selection='best')
 
     """
@@ -347,7 +285,7 @@ if __name__ == '__main__':
 
     #plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit), vali_data)
         
-    plotCalCurve((highRegimeData, lowRegimeData), (high_fit))
+    plotCalCurve(data, fit)
     #plotCalCurve((highRegimeData, lowRegimeData), (high_fit, low_fit))
 
     '''
