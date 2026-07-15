@@ -1,0 +1,854 @@
+current_iterations: 100000
+elapsed_time: 21839.830631256104
+equation_hist:
+- !!python/object/new:sympy.core.mul.Mul
+  - &id001 !!python/object/new:sympy.core.symbol.Symbol
+    - Pyrometer_Temperature
+  - !!python/object/new:sympy.core.power.Pow
+    - !!python/object/new:sympy.core.add.Add
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - &id002 !!python/name:sympy.core.numbers.Float ''
+        - !!python/tuple
+          - !!python/tuple
+            - 1
+            - d65d962068555
+            - -46
+            - 52
+        - precision: 53
+      - *id001
+    - &id003 !!python/object:sympy.core.numbers.NegativeOne {}
+  - !!python/object/new:sympy.core.add.Add
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 0
+          - b7f7e6560ace9
+          - -52
+          - 52
+      - precision: 53
+    - !!python/object/new:sympy.core.mul.Mul
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 1
+            - 1689059a1536eb
+            - -63
+            - 53
+        - precision: 53
+      - *id001
+  - !!python/object/new:sympy.core.add.Add
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 1
+          - 74ceebf65dbfd
+          - -45
+          - 51
+      - precision: 53
+    - *id001
+- !!python/object/new:sympy.core.mul.Mul
+  - !!python/object/new:sympy.core.add.Add
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 1
+          - 33328b4543003
+          - -47
+          - 50
+      - precision: 53
+    - !!python/object/new:sympy.core.mul.Mul
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 1
+            - 8c54a8009833f
+            - -58
+            - 52
+        - precision: 53
+      - *id001
+    - !!python/object/new:sympy.core.mul.Mul
+      - &id004 !!python/object/new:sympy.core.power.Pow
+        - *id001
+        - !!python/object/new:sympy.core.numbers.Rational
+          - -1
+          - 2
+      - !!python/object/new:sympy.core.add.Add
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 0
+              - 16c7a500d5e8d5
+              - -47
+              - 53
+          - precision: 53
+        - !!python/object/new:sympy.core.mul.Mul
+          - !!python/object/apply:copyreg.__newobj_ex__
+            - *id002
+            - !!python/tuple
+              - !!python/tuple
+                - 0
+                - cf73c925785f9
+                - -53
+                - 52
+            - precision: 53
+          - *id001
+  - !!python/object/new:sympy.core.add.Add
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 1
+          - 16e117326af9e5
+          - -47
+          - 53
+      - precision: 53
+    - !!python/object/new:sympy.core.mul.Mul
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 0
+            - 1382d9759bbf9d
+            - -56
+            - 53
+        - precision: 53
+      - !!python/object/new:sympy.core.power.Pow
+        - !!python/object/new:sympy.core.add.Add
+          - !!python/object/apply:copyreg.__newobj_ex__
+            - *id002
+            - !!python/tuple
+              - !!python/tuple
+                - 0
+                - cd31fff79c843
+                - -49
+                - 52
+            - precision: 53
+          - !!python/object/new:sympy.core.mul.Mul
+            - !!python/object/apply:copyreg.__newobj_ex__
+              - *id002
+              - !!python/tuple
+                - !!python/tuple
+                  - 1
+                  - 1c1feb606954e1
+                  - -58
+                  - 53
+              - precision: 53
+            - *id001
+        - *id003
+    - !!python/object/new:sympy.core.mul.Mul
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 0
+            - 1c8ae8c6fe56b3
+            - -53
+            - 53
+        - precision: 53
+      - *id001
+- !!python/object/new:sympy.core.mul.Mul
+  - !!python/object/new:sympy.core.add.Add
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 1
+          - 676ff2e48e8a7
+          - -45
+          - 51
+      - precision: 53
+    - *id001
+  - !!python/object/new:sympy.core.add.Add
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 1
+          - ba90a717309e3
+          - -49
+          - 52
+      - precision: 53
+    - !!python/object/new:sympy.core.mul.Mul
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 1
+            - 1fb71a19420193
+            - -60
+            - 53
+        - precision: 53
+      - *id001
+    - !!python/object/new:sympy.core.mul.Mul
+      - *id004
+      - !!python/object/new:sympy.core.add.Add
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 0
+              - 52f00a7c5ac47
+              - -45
+              - 51
+          - precision: 53
+        - !!python/object/new:sympy.core.mul.Mul
+          - !!python/object/apply:copyreg.__newobj_ex__
+            - *id002
+            - !!python/tuple
+              - !!python/tuple
+                - 0
+                - 768627f7c0c15
+                - -54
+                - 51
+            - precision: 53
+          - !!python/object/new:sympy.core.power.Pow
+            - !!python/object/new:sympy.core.add.Add
+              - !!python/object/apply:copyreg.__newobj_ex__
+                - *id002
+                - !!python/tuple
+                  - !!python/tuple
+                    - 0
+                    - 1d25793dd97f63
+                    - -45
+                    - 53
+                - precision: 53
+              - &id005 !!python/object/new:sympy.core.mul.Mul
+                - *id003
+                - *id001
+            - *id003
+        - !!python/object/new:sympy.core.mul.Mul
+          - !!python/object/apply:copyreg.__newobj_ex__
+            - *id002
+            - !!python/tuple
+              - !!python/tuple
+                - 0
+                - 1785582e953ec1
+                - -54
+                - 53
+            - precision: 53
+          - *id001
+- !!python/object/new:sympy.core.mul.Mul
+  - !!python/object/new:sympy.core.add.Add
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 1
+          - 67702363b257
+          - -41
+          - 47
+      - precision: 53
+    - *id001
+  - !!python/object/new:sympy.core.add.Add
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 1
+          - ba90df15a4acf
+          - -49
+          - 52
+      - precision: 53
+    - !!python/object/new:sympy.core.mul.Mul
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 1
+            - fda735389bfdd
+            - -59
+            - 52
+        - precision: 53
+      - *id001
+    - !!python/object/new:sympy.core.mul.Mul
+      - *id004
+      - !!python/object/new:sympy.core.add.Add
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 0
+              - a5e11a11233df
+              - -46
+              - 52
+          - precision: 53
+        - !!python/object/new:sympy.core.mul.Mul
+          - !!python/object/apply:copyreg.__newobj_ex__
+            - *id002
+            - !!python/tuple
+              - !!python/tuple
+                - 0
+                - 2f09a0bda53c9
+                - -51
+                - 50
+            - precision: 53
+          - *id001
+        - !!python/object/new:sympy.core.mul.Mul
+          - !!python/object/apply:copyreg.__newobj_ex__
+            - *id002
+            - !!python/tuple
+              - !!python/tuple
+                - 0
+                - bc4a58f31da15
+                - -55
+                - 52
+            - precision: 53
+          - !!python/object/new:sympy.core.power.Pow
+            - !!python/object/new:sympy.core.add.Add
+              - !!python/object/apply:copyreg.__newobj_ex__
+                - *id002
+                - !!python/tuple
+                  - !!python/tuple
+                    - 0
+                    - e91284dfce315
+                    - -44
+                    - 52
+                - precision: 53
+              - *id005
+            - *id003
+- !!python/object/new:sympy.core.add.Add
+  - !!python/object/apply:copyreg.__newobj_ex__
+    - *id002
+    - !!python/tuple
+      - !!python/tuple
+        - 1
+        - a981ad42c3c9f
+        - -42
+        - 52
+    - precision: 53
+  - &id007 !!python/object/new:sympy.core.mul.Mul
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 0
+          - 1218b984f16be9
+          - -52
+          - 53
+      - precision: 53
+    - !!python/object/new:sympy.core.power.Pow
+      - !!python/object/new:sympy.core.add.Add
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 0
+              - 1d22a9930be0df
+              - -45
+              - 53
+          - precision: 53
+        - *id005
+      - *id003
+  - !!python/object/new:sympy.core.mul.Mul
+    - *id001
+    - !!python/object/new:sympy.core.add.Add
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 1
+            - 147ed2dcb1465f
+            - -48
+            - 53
+        - precision: 53
+      - &id008 !!python/object/new:sympy.core.mul.Mul
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 1
+              - 93ecad231f7b
+              - -53
+              - 48
+          - precision: 53
+        - *id001
+      - !!python/object/new:sympy.core.mul.Mul
+        - *id004
+        - !!python/object/new:sympy.core.add.Add
+          - !!python/object/apply:copyreg.__newobj_ex__
+            - *id002
+            - !!python/tuple
+              - !!python/tuple
+                - 0
+                - 1896ce4649906d
+                - -45
+                - 53
+            - precision: 53
+          - *id001
+- !!python/object/new:sympy.core.add.Add
+  - !!python/object/new:sympy.core.mul.Mul
+    - !!python/object/new:sympy.core.add.Add
+      - !!python/object/new:sympy.core.mul.Mul
+        - *id001
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 1
+              - 15568abffbc7d1
+              - -63
+              - 53
+          - precision: 53
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 0
+            - 166e9fbb1bca61
+            - -53
+            - 53
+        - precision: 53
+    - *id001
+  - !!python/object/new:sympy.core.mul.Mul
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 1
+          - 10feb482be8bc1
+          - -44
+          - 53
+      - precision: 53
+    - !!python/object/new:sympy.core.power.Pow
+      - !!python/object/new:sympy.core.add.Add
+        - *id001
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 1
+              - 63da209aaa3ad
+              - -45
+              - 51
+          - precision: 53
+      - *id003
+- !!python/object/new:sympy.core.add.Add
+  - !!python/object/new:sympy.core.mul.Mul
+    - !!python/object/new:sympy.core.add.Add
+      - !!python/object/new:sympy.core.mul.Mul
+        - *id001
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 1
+              - 156926d5c4d289
+              - -63
+              - 53
+          - precision: 53
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 0
+            - 16740062a6685f
+            - -53
+            - 53
+        - precision: 53
+    - *id001
+  - !!python/object/new:sympy.core.mul.Mul
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 1
+          - 21fd753a3ec03
+          - -41
+          - 50
+      - precision: 53
+    - !!python/object/new:sympy.core.power.Pow
+      - !!python/object/new:sympy.core.add.Add
+        - *id001
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 1
+              - c7c7c914b167f
+              - -46
+              - 52
+          - precision: 53
+      - *id003
+- &id006 !!python/object/new:sympy.core.add.Add
+  - !!python/object/new:sympy.core.mul.Mul
+    - *id001
+    - !!python/object/new:sympy.core.add.Add
+      - !!python/object/new:sympy.core.mul.Mul
+        - *id001
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 1
+              - abbfc8eea0fbf
+              - -62
+              - 52
+          - precision: 53
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 0
+            - 1677b86891b9d1
+            - -53
+            - 53
+        - precision: 53
+  - !!python/object/new:sympy.core.mul.Mul
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 1
+          - 10fec226809d49
+          - -44
+          - 53
+      - precision: 53
+    - !!python/object/new:sympy.core.power.Pow
+      - !!python/object/new:sympy.core.add.Add
+        - *id001
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 1
+              - 18f933e35c5b4b
+              - -47
+              - 53
+          - precision: 53
+      - *id003
+- *id006
+- *id006
+- *id006
+- *id006
+- *id006
+- *id006
+- &id009 !!python/object/new:sympy.core.add.Add
+  - !!python/object/apply:copyreg.__newobj_ex__
+    - *id002
+    - !!python/tuple
+      - !!python/tuple
+        - 1
+        - a981ad42c3c9f
+        - -42
+        - 52
+    - precision: 53
+  - *id007
+  - &id010 !!python/object/new:sympy.core.mul.Mul
+    - *id001
+    - !!python/object/new:sympy.core.add.Add
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 1
+            - 147ed2dcb1465f
+            - -48
+            - 53
+        - precision: 53
+      - *id008
+      - !!python/object/new:sympy.core.mul.Mul
+        - *id004
+        - !!python/object/new:sympy.core.add.Add
+          - !!python/object/apply:copyreg.__newobj_ex__
+            - *id002
+            - !!python/tuple
+              - !!python/tuple
+                - 0
+                - 1896ce4649906d
+                - -45
+                - 53
+            - precision: 53
+          - *id001
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- *id009
+- !!python/object/new:sympy.core.add.Add
+  - !!python/object/apply:copyreg.__newobj_ex__
+    - *id002
+    - !!python/tuple
+      - !!python/tuple
+        - 1
+        - a981ad42c3c9f
+        - -42
+        - 52
+    - precision: 53
+  - !!python/object/new:sympy.core.mul.Mul
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 0
+          - 1c9e215336deb9
+          - -53
+          - 53
+      - precision: 53
+    - !!python/object/new:sympy.core.power.Pow
+      - !!python/object/new:sympy.core.add.Add
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 0
+              - 1d200f9096bb99
+              - -45
+              - 53
+          - precision: 53
+        - *id005
+      - *id003
+  - *id010
+- &id011 !!python/object/new:sympy.core.add.Add
+  - !!python/object/apply:copyreg.__newobj_ex__
+    - *id002
+    - !!python/tuple
+      - !!python/tuple
+        - 1
+        - 1530347d805e5f
+        - -43
+        - 53
+    - precision: 53
+  - !!python/object/new:sympy.core.mul.Mul
+    - !!python/object/apply:copyreg.__newobj_ex__
+      - *id002
+      - !!python/tuple
+        - !!python/tuple
+          - 0
+          - 729cd106984a9
+          - -51
+          - 51
+      - precision: 53
+    - !!python/object/new:sympy.core.power.Pow
+      - !!python/object/new:sympy.core.add.Add
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 0
+              - 748148fd9fd37
+              - -43
+              - 51
+          - precision: 53
+        - *id005
+      - *id003
+  - !!python/object/new:sympy.core.mul.Mul
+    - *id001
+    - !!python/object/new:sympy.core.add.Add
+      - !!python/object/apply:copyreg.__newobj_ex__
+        - *id002
+        - !!python/tuple
+          - !!python/tuple
+            - 1
+            - 147ec4827b6fe3
+            - -48
+            - 53
+        - precision: 53
+      - !!python/object/new:sympy.core.mul.Mul
+        - !!python/object/apply:copyreg.__newobj_ex__
+          - *id002
+          - !!python/tuple
+            - !!python/tuple
+              - 1
+              - 127e0024d7bf89
+              - -58
+              - 53
+          - precision: 53
+        - *id001
+      - !!python/object/new:sympy.core.mul.Mul
+        - *id004
+        - !!python/object/new:sympy.core.add.Add
+          - !!python/object/apply:copyreg.__newobj_ex__
+            - *id002
+            - !!python/tuple
+              - !!python/tuple
+                - 0
+                - 1896f1800a7c5b
+                - -45
+                - 53
+            - precision: 53
+          - *id001
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+- *id011
+loss_hist:
+- 2.187118
+- 1.5716244
+- 1.5050485
+- 1.491781
+- 1.5980121
+- 2.1530294
+- 2.1494653
+- 2.1488082
+- 2.1488082
+- 2.1488082
+- 2.1488082
+- 2.1488082
+- 2.1488082
+- 2.1488082
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5980121
+- 1.5935323
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
+- 1.593025
