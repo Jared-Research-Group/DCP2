@@ -24,21 +24,27 @@ def temporal_alignment(dir, ignition_wait_time = .2, flag_plot = False):
     # read modified data. TODO: this operation should happen in memory
     ps  = pd.read_csv(dir / 'lembox_data__clean.csv', parse_dates=['Timestamp'])
     rob = pd.read_csv(dir / 'robot_data__clean.csv', parse_dates=['SystemTime'])
-    mic = pd.read_csv(dir / 'microphone_data__clean.csv', parse_dates=['Absolute Time'])
 
-    # sparse dataframe for memory
-    rob = rob[['SystemTime', 'RIst_X', 'RIst_Y']]
+    try:
+        mic = pd.read_csv(dir / 'microphone_data__clean.csv', parse_dates=['Absolute Time'])
+    except Exception as e:
+        logger.warning('microphone_data__clean.csv not found. continuing...')
+        mic = None
 
     # data with features we plan to align to
-    data  = {'power supply': [ps['Scaled_Voltage(V)']], 'robot': [rob['RIst_X'], rob['RIst_Y']], 'microphone': [mic['Amplitude']]}
+    data  = {'power supply': [ps['Scaled_Voltage(V)']], 'robot': [rob['RIst_X'], rob['RIst_Y']],}
+    if mic is not None:
+        data['microphone'] = [mic['Amplitude']]
+
     sr    = {'power supply': 20e3, 'robot': 250, 'microphone': 48e3}
 
     # start with rough interpolated times for power supply, microphone. This ensures that things are sequential for peak detection
     time  = {
-        'power supply': pd.Series(ps['Timestamp'][0].timestamp() + np.arange(len(ps)) * (1/sr['power supply'])),
-        'robot': np.asarray([t.timestamp() for t in rob['SystemTime']]), # to timestamp
-        'microphone': pd.Series(mic['Absolute Time'][0].timestamp() + np.arange(len(mic)) * (1/sr['microphone']))
-            }
+        'power supply': pd.Series((ps['Timestamp'][0] + timedelta(hours=5)).timestamp() + np.arange(len(ps)) * (1/sr['power supply'])),
+        'robot': np.asarray([(t + timedelta(hours=5)).timestamp() for t in rob['SystemTime']]), # to timestamp
+    }
+    if mic is not None:
+        time['microphone'] = pd.Series((mic['Absolute Time'][0] + timedelta(hours=5)).timestamp() + np.arange(len(mic)) * (1/sr['microphone']))
 
     if flag_plot:
         plt.rcParams['lines.markersize'] = .1
@@ -96,7 +102,7 @@ def temporal_alignment(dir, ignition_wait_time = .2, flag_plot = False):
 
                 # remove rare false peaks in steady data
                 count = 0
-                while axis[count + 1] - axis[count] > 2:
+                while axis[count + 1] - axis[count] > 5 and count + 2 < len(axis):
                     count += 1
 
                 if flag_plot:
@@ -119,6 +125,11 @@ def temporal_alignment(dir, ignition_wait_time = .2, flag_plot = False):
                 ax[i].set_title(key)
                 i += 1
 
+    weld_stop_id = {'power supply':peaks['power supply'][0][-1]}
+
+    if weld_stop_id['power supply'] >= len(ps):
+        weld_stop_id['power supply'] = len(ups) - 1
+
     if flag_plot:
         fig.suptitle('Visualize weld start samples')
         plt.show()
@@ -129,10 +140,23 @@ def temporal_alignment(dir, ignition_wait_time = .2, flag_plot = False):
 
         # robot time (based on IPOC) is not reinterpolated
         if key != 'robot':
-            time[key] = [(timedelta(seconds=(i - weld_start_id[key]) * (1/sr[key])) + datetime.fromtimestamp(weld_start_time, tz=timezone.utc)).replace(tzinfo=None) for i in range(len(t))]
-        
-    ps['Timestamp']      = time['power supply']
-    mic['Absolute Time'] = time['microphone']
+            time[key] = [(timedelta(seconds=(i - weld_start_id[key]) * (1/sr[key])) + datetime.fromtimestamp(weld_start_time)) for i in range(len(t))]
+    
+    weld_stop_time = time['power supply'][weld_stop_id['power supply']].timestamp()
+
+    flag_is_welding = pd.Series([t > weld_start_time and t < weld_stop_time for t in time['robot']])
+
+    ps['Timestamp']        = time['power supply']
+    rob['flag_is_welding'] = flag_is_welding
+
+    if mic is not None:
+        mic['Absolute Time'] = time['microphone']
+
+    if flag_plot:
+        plt.scatter(ps['Timestamp'], ps['Scaled_Voltage(V)'])
+        plt.scatter(rob['SystemTime'], rob['flag_is_welding'])
+        plt.title('test welding flag')
+        plt.show()
 
     # show temporally aligned data
     if flag_plot:
@@ -140,13 +164,18 @@ def temporal_alignment(dir, ignition_wait_time = .2, flag_plot = False):
         ax[0].scatter(ps['Timestamp'], ps['Scaled_Voltage(V)'])
         ax[1].scatter(rob['SystemTime'], rob['RIst_X'])
         ax[2].scatter(rob['SystemTime'], rob['RIst_Y'])
-        ax[3].scatter(mic['Absolute Time'], mic['Amplitude'])
+        
+        if mic is not None:
+            ax[3].scatter(mic['Absolute Time'], mic['Amplitude'])
 
         plt.show()
 
     # save data with new timestamps
     ps .to_csv(dir / 'lembox_data__clean.csv'    , index=False)
-    mic.to_csv(dir / 'microphone_data__clean.csv', index=False)
+    rob.to_csv(dir / 'robot_data__clean.csv'     , index=False)
+
+    if mic is not None:
+        mic.to_csv(dir / 'microphone_data__clean.csv', index=False)
 
 if __name__ == '__main__':
 

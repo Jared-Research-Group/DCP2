@@ -246,12 +246,6 @@ def setup_directory_structure(dir, input_file, output_files, **kwargs):
 
 # data must be np.array!
 def flirConversion(data, model):
-    #temps = np.zeros(data.shape)
-
-
-#    for i, intensity in tqdm(np.ndenumerate(data)):
-#        temps[i] = model(float(intensity)) - 273.15
-
     temps = model(data) - 273.15
     return temps
 
@@ -316,7 +310,7 @@ def get_FLIR_model(d_in):
 
         if case == 1:
             high_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best', verbosity=0)
-            return sp.lambdify(x, high_fit.sympy(), modules='numpy')
+            return sp.lambdify(x, high_fit.sympy(11), modules='numpy')
         else:
             low_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best', verbosity=0)
             return sp.lambdify(x, low_fit.sympy(), modules='numpy')
