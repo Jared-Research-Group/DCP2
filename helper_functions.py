@@ -303,7 +303,7 @@ def get_FLIR_model(d_in):
 
         if case == 1:
             high_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best', verbosity=0)
-            return sp.lambdify(x, high_fit.sympy(), modules='numpy')
+            return sp.lambdify(x, high_fit.sympy(11), modules='numpy')
         else:
             low_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best', verbosity=0)
             return sp.lambdify(x, low_fit.sympy(), modules='numpy')
