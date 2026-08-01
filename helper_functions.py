@@ -174,7 +174,8 @@ def setup_kwargs(name, num_outputs):
 
     if len(sys.argv) == 3 + num_outputs:
         kwargs['output_files'] = [arg for arg in sys.argv[3:3 + num_outputs]]
-    else:
+
+    if len(sys.argv) < 1 or len(sys.argv) > 3 + num_outputs:
         raise ValueError (name + ' expected '+ str(num_outputs) + ' output file paths via command line. Exiting...')
 
     return dir, kwargs
@@ -303,10 +304,12 @@ def get_FLIR_model(d_in):
 
         if case == 1:
             high_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best', verbosity=0)
-            return sp.lambdify(x, high_fit.sympy(11), modules='numpy')
+            model = sp.lambdify(x, high_fit.sympy(11), modules='numpy')
         else:
             low_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best', verbosity=0)
-            return sp.lambdify(x, low_fit.sympy(), modules='numpy')
+            model = sp.lambdify(x, low_fit.sympy(), modules='numpy')
         
-    sys.stdout = stdout
-    sys.stderr = stderr
+        sys.stdout = stdout
+        sys.stderr = stderr
+
+    return model

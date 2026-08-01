@@ -155,7 +155,7 @@ def npy_to_video(dir, forceUpdate=False, fps=30, width=464, height=348, **kwargs
                 final_image = add_timestamp(image_with_scale_bar, timestamp, width, height)
                 
                 out.write(final_image)
-                frame_filename = os.path.join(output_frames_folder, f"{os.path.splitext(npy_file)[0]}.png")
+                frame_filename = os.path.join(output_frames_folder, f"{data.item()['timestamp'].replace(' ', '_').replace(':', '_').replace('.', '_')}.png")
                 cv2.imwrite(frame_filename, final_image)
                 
             except Exception as e:
