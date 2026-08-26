@@ -287,26 +287,33 @@ def get_FLIR_model(d_in):
     with open(d_in / 'FLIR_Variables.json', 'r') as json_file:
         params = json.load(json_file)
 
-    if 'case' in params:
+    if params['J1'] == 7.436957359313965:
+        case = 1
+
+    elif params['J1'] == 57.55026626586914:
+        case = 0
+
+    elif 'case' in params:
         case = int(params['case'])
+
     else:
-
         case = ask_case()                   # dialog needs to close after button press. json assignment doesnt work, and need to rewrite file.
-        params["case"] = str(case)
 
-        with open(d_in / 'FLIR_Variables.json', 'w') as json_file:
-            json.dump(params, json_file, indent=2)
+    # save case for backcompatibility
+    params["case"] = str(case)
+    with open(d_in / 'FLIR_Variables.json', 'w') as json_file:
+        json.dump(params, json_file, indent=2)
 
     x = sp.symbols('FLIR_Intensity')
 
     logging.getLogger('pysr').setLevel(logging.WARNING)
 
-    stdout = sys.stdout
-    stderr = sys.stderr
+    #stdout = sys.stdout
+    #stderr = sys.stderr
 
     with open(os.devnull, 'w') as devnull:
-        sys.stdout = devnull
-        sys.stderr = devnull
+        #sys.stdout = devnull
+        #sys.stderr = devnull
 
         if case == 1:
             high_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best', verbosity=0)
@@ -315,5 +322,5 @@ def get_FLIR_model(d_in):
             low_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best', verbosity=0)
             return sp.lambdify(x, low_fit.sympy(), modules='numpy')
         
-    sys.stdout = stdout
-    sys.stderr = stderr
+    #sys.stdout = stdout
+    #sys.stderr = stderr

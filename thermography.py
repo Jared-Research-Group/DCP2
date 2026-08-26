@@ -165,11 +165,34 @@ def getFrameData(dir, pix=None, printFlag=True):
     return timestamps, df['frame_paths'].to_list()
     
 
+def getTempData_np(data, dir, model=None, sparsity=None):
+
+    if model is None:
+        model = get_FLIR_model(dir)
+
+    intensity = data
+
+    # only care about every [sparsity]th value. Saves memory
+    if sparsity is not None:
+        sparse_intensity = []
+
+        for fr in intensity:
+            for i in range(len(fr)/sparsity):
+                for j in range(len(fr[0])/sparsity):
+                    sparse_intensity[i][j] = intensity[i*sparsity][j*sparsity]
+
+        intensity = sparse_intensity
+
+    temp = flirConversion(intensity, model)
+
+    return temp
+
 def getTempData(df, dir, model=None, sparsity=None):
 
     if model is None:
         model = get_FLIR_model(dir)
 
+    
     intensity = df['i_pix'].to_list()
     intensity = np.asarray(intensity)
 
