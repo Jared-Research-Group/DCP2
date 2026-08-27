@@ -81,10 +81,12 @@ def recursiveTempSelection(entry):
     """
 
 def getTempSequences(dir):
+    import json
 
     dir = Path(dir)
 
     frames = [file for file in dir.iterdir() if file.is_file()]
+    frames.sort()
 
     shape = (np.genfromtxt(frames[0], delimiter = ',').shape) + (len(frames),)
     arr = np.zeros(shape = shape, dtype = np.float64)
@@ -93,8 +95,15 @@ def getTempSequences(dir):
 
         arr[:, :, i] = np.genfromtxt(frame, delimiter = ',')
 
-    np.save(dir.parent / 'sequences.npy', arr)
+    if not (dir.parent / 'sequences').is_dir():
+        os.mkdir(dir.parent / 'sequences')
 
+    for i, row in enumerate(arr):
+        for j, pix in enumerate(row):
+            np.save(dir.parent / 'sequences' / f'{i:>04}_{j:>04}.npy', pix)
+
+    with open(dir.parent / 'sequences' / 'data.json', 'w') as file:
+        json.dump({'time_length': arr.shape[-1]}, file)
 
 if __name__ == '__main__':
 

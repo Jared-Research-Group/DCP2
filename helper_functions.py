@@ -135,7 +135,7 @@ def csvHasColumn(f, id):
     if id in pd.read_csv(f, nrows=1): return True
     return False
 
-def selectFolder(title='Select Top-Level Folder'):
+def selectFolder(title:str ='Select Top-Level Folder'):
     init_dir = os.path.expanduser('~')
     if os.access(init_dir + '/Data', os.R_OK):
         init_dir += '/Data'
