@@ -10,6 +10,7 @@ class ThermalLSTM(nn.Module):
 
         self.hidden_dim = hidden_dim # length of hidden state vectors in LSTM cell
         self.input_size = input_size # shape of a single timestamp's data in input sequence (always 1 for 1D timeseres)
+        self.num_layers = num_layers # number of stacked LSTM cells in the model
 
         self.input_sequence_length  = input_sequence_length # number of points in input sequence
         self.output_sequence_length = output_sequence_length # number of predicted points in output sequence
@@ -17,7 +18,7 @@ class ThermalLSTM(nn.Module):
         # LSTM cell definition
         self.lstm = nn.LSTM(input_size,
                             hidden_dim,
-                            num_layers = num_layers,
+                            num_layers = self.num_layers,
                             batch_first=True, # formatting thing. changes required dimensions of lstm cell's input
                             dtype = torch.float32)
 

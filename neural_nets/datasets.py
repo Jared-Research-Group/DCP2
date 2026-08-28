@@ -14,10 +14,15 @@ class ThermalSequenceDataset(torch.utils.data.Dataset):
         self.output_seq_len = output_seq_len
         self.step = step
 
+        self.norm_max = 1150
+        self.norm_min = 0
+
         with open(self.path / 'data.json', 'r') as file:
             self.time_len = json.load(file)['time_length']
 
         self.files = [file for file in self.path.iterdir() if file.suffix != '.json']
+
+        self.num_segments = (self.time_len - (self.input_seq_len + self.output_seq_len)) // self.step
 
         """
         self.data = None
@@ -45,15 +50,16 @@ class ThermalSequenceDataset(torch.utils.data.Dataset):
             """
     def __len__(self):
 
-        return len(self.files) * (self.time_len - (self.input_seq_len + self.output_seq_len) // self.step)
+        return len(self.files) * self.num_segments
 
     def __getitem__(self, idx):
 
-        file_idx  = idx // (self.time_len - (self.input_seq_len + self.output_seq_len) // self.step)
-        start_idx = idx %  (self.time_len - (self.input_seq_len + self.output_seq_len) // self.step)
+        file_idx  = idx // self.num_segments
+        start_idx = (idx %  self.num_segments) * self.step
 
         file = np.load(self.files[file_idx], allow_pickle=True)
+        file = file.astype(np.float32)
 
         input  = torch.from_numpy(file[start_idx                      : start_idx + self.input_seq_len])
         target = torch.from_numpy(file[start_idx + self.input_seq_len : start_idx + self.input_seq_len + self.output_seq_len])
-        return input, target
+        return (input - self.norm_min) / (self.norm_max - self.norm_min), (target - self.norm_min) / (self.norm_max - self.norm_min)

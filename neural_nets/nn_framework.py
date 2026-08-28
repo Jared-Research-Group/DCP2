@@ -5,6 +5,7 @@ from tqdm import tqdm
 import zarr
 from pathlib import Path
 import typing
+import asyncio
 
 # torch imports
 import torch
@@ -49,6 +50,7 @@ def train(model: torch.nn.Module,
           optimizer: torch.optim.Optimizer,
           model_dir: Path,
           num_epochs: int = 1000,
+          report_step: int = 100,
           **kwargs
           ) -> torch.nn.Module:
 
@@ -76,11 +78,26 @@ def train(model: torch.nn.Module,
     # move to GPU if available
     model.to(constants.TORCH_DEVICE)
 
+    local_loss = np.zeros(report_step)
+
+    loss_fig, loss_ax = plt.subplots(1, 1, layout='constrained')
+    loss_ax.set_xlabel('epoch')
+    loss_ax.set_ylabel(f'{loss_fn.__class__.__name__}')
+    loss_ax.set_title('LSTM Loss History')
+
+    loss_line, = loss_ax.semilogy(np.arange(loss_history.shape[0]), loss_history[:], color='blue')
+
+    plt.ion()
+    plt.show()
+    plt.pause(1e-2)
+
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=800)
+
     for epoch in tqdm(range(num_epochs - completed_epochs)):
 
         # training step
         model.train()
-        for input, target in training_loader:
+        for input, target in (training_loader):
 
             # move to GPU if available
             input  = input .to(constants.TORCH_DEVICE, non_blocking=True)
@@ -97,7 +114,9 @@ def train(model: torch.nn.Module,
         with torch.no_grad():
 
             # doing a sort-of batched (weighted) averaging to compute validation loss.
-            new_loss = 0
+
+            losses = 0
+            samples = 0
 
             for input, target in validation_loader:
 
@@ -107,28 +126,35 @@ def train(model: torch.nn.Module,
                 result = model(input)
                 loss = loss_fn(result, target)
 
-                new_loss += loss.mean.detach()
+                losses += loss.item() * input.size(0)
+                samples += input.size(0)
 
-            batch_size = validation_loader.batch_size if validation_loader.batch_size is not None else len(validation_loader) # handle case where batch size is not set
-            loss_history.append(new_loss / (len(validation_loader) / batch_size))
+
+            local_loss[epoch % report_step] = losses / samples
+
+        scheduler.step(local_loss[epoch % report_step])
 
         # update plots every 10 epochs
-        if epoch % 10 == 0:
+        if epoch % report_step == report_step - 1:
 
-            plt.semilogy(np.arange(loss_history.shape[0]), loss_history, color='blue')
-            plt.xlabel('epoch')
-            plt.ylabel(f'{loss_fn.__qualname__}')
-            plt.title('LSTM Loss History')
-            plt.savefig(model_dir / 'hist.png')
-            plt.close()
+            loss_history.append(local_loss)
+            local_loss = np.zeros(report_step)
 
-            plt.semilogy(np.arange(loss_history.shape[0] - 1), np.abs(np.diff(loss_history[:])), color='red')
-            plt.xlabel('epoch')
-            plt.ylabel('Loss Rate')
-            plt.title('LSTM Loss Rate of Change')
-            plt.savefig(model_dir / 'rate.png')
-            plt.close()
+            loss_line.set_xdata(np.arange(loss_history.shape[0]))
+            loss_line.set_ydata(loss_history[:])
 
-            torch.save(model, model_dir / 'checkpoint.pt')
+            loss_ax.relim()
+
+            loss_ax.autoscale_view()
+
+            loss_fig.canvas.draw_idle()
+            plt.pause(1e-2)
+
+            loss_fig.savefig(model_dir / 'hist.png')
+
+            torch.save(model.state_dict(), model_dir / 'checkpoint.pt')
+            torch.save(optimizer.state_dict(), model_dir / 'optim.pt')
+
+            print(f'Learning rate: {optimizer.param_groups[0]['lr']}')
 
     return model
