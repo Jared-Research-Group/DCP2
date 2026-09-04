@@ -20,9 +20,9 @@ class ThermalLSTM(nn.Module):
                             hidden_dim,
                             num_layers = self.num_layers,
                             batch_first=True, # formatting thing. changes required dimensions of lstm cell's input
-                            dtype = torch.float32)
+                            dtype = torch.float64)
 
-        self.head = nn.Linear(hidden_dim, output_sequence_length) # simple linear head construction. converts LSTM output to desired shape
+        self.head = nn.Linear(hidden_dim, output_sequence_length, dtype=torch.float64) # simple linear head construction. converts LSTM output to desired shape
 
     # defines architecture of the model
     def forward(self, input):

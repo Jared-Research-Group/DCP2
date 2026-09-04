@@ -1,60 +1,41 @@
 import numpy as np
 import zarr
-from pathlib import Path
-
 import torch
-import json
+
+import constants
 
 # TODO: handle grouping
 class zarr_generic(torch.utils.data.Dataset):
 
-    def __init__(self, zarr_group):
+    def __init__(self, zarr_group: zarr.Group):
         self.zarr_group = zarr_group
 
         self.input  = self.zarr_group['input']
         self.target = self.zarr_group['target']
 
     def __len__(self):
-        return len(self.input)
+        return self.input.shape[0]
 
     def __getitem__(self, idx):
 
         input  = torch.from_numpy(self.input[idx])
         target = torch.from_numpy(self.target[idx])
 
-"""
-class ThermalSequenceDataset(torch.utils.data.Dataset):
+        return input, target
 
-    def __init__(self, path: Path, input_seq_len: int, output_seq_len: int, step: int = 30):
+class in_memory_generic(torch.utils.data.Dataset):
 
-        self.path = path
-        self.input_seq_len = input_seq_len
-        self.output_seq_len = output_seq_len
-        self.step = step
+    def __init__(self, zarr_group: zarr.Group):
 
-        self.norm_max = 1150
-        self.norm_min = 0
-
-        with open(self.path / 'data.json', 'r') as file:
-            self.time_len = json.load(file)['time_length']
-
-        self.files = [file for file in self.path.iterdir() if file.suffix != '.json']
-
-        self.num_segments = (self.time_len - (self.input_seq_len + self.output_seq_len)) // self.step
+        self.input = torch.from_numpy(zarr_group['input'][:]).to(constants.TORCH_DEVICE)
+        self.target = torch.from_numpy(zarr_group['target'][:]).to(constants.TORCH_DEVICE)
 
     def __len__(self):
+        return self.input.shape[0]
 
-        return len(self.files) * self.num_segments
+    def __getitem__(self, idx) -> tuple[torch.tensor, torch.tensor]:
 
-    def __getitem__(self, idx):
+        input  = self.input[idx]
+        target = self.target[idx]
 
-        file_idx  = idx // self.num_segments
-        start_idx = (idx %  self.num_segments) * self.step
-
-        file = np.load(self.files[file_idx], allow_pickle=True)
-        file = file.astype(np.float32)
-
-        input  = torch.from_numpy(file[start_idx                      : start_idx + self.input_seq_len])
-        target = torch.from_numpy(file[start_idx + self.input_seq_len : start_idx + self.input_seq_len + self.output_seq_len])
-        return (input - self.norm_min) / (self.norm_max - self.norm_min), (target - self.norm_min) / (self.norm_max - self.norm_min)
-"""
+        return input, target
