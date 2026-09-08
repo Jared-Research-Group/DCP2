@@ -20,17 +20,17 @@ import nn_framework
 
 args = {
     'num_epochs': int(3e6),
-    'report_step': int(1e3),
+    'report_step': int(1e1),
     'lr': .5,
-    'lr_scheduler_args': {'patience': int(1e4)},
+    'lr_scheduler_args': {'patience': int(1e2)},
     'loader_args': {'batch_size': 2**12},
 }
 
-#input_dir = Path(r"D:\MASON\Data\LSTM\in")
-#output_dir = Path(r"D:\MASON\Data\LSTM\out")
-
-input_dir = Path(r"D:\MASON\Data\LSTM\test_in")
+input_dir = Path(r"D:\MASON\Data\LSTM\in")
 output_dir = Path(r"D:\MASON\Data\LSTM\test_good_result")
+
+#input_dir = Path(r"D:\MASON\Data\LSTM\test_in")
+#output_dir = Path(r"D:\MASON\Data\LSTM\test_good_result")
 
 
 class ThermalHistoryPredictor(nn_framework.NeuralNet):
@@ -144,11 +144,11 @@ class ThermalHistoryPredictor(nn_framework.NeuralNet):
 
         plot_loader = iter(torch.utils.data.DataLoader(self.training_dataset, **loader_args))
 
-        fix, ax = plt.subplots(3, 3, layout='constrained')
+        fix, ax = plt.subplots(5, 5, layout='constrained')
 
         with torch.no_grad():
-            for i in range(3):
-                for j in range(3):
+            for i in range(5):
+                for j in range(5):
 
                     inpt, target = next(plot_loader)
                     length = len(inpt.cpu().numpy().squeeze()) + len(target.cpu().numpy().squeeze())
