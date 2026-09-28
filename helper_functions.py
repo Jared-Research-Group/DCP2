@@ -78,7 +78,7 @@ def applyRollingOperation(data, window_length, op, **args):
     if window_length <= 1:
         raise ValueError(op.__name__ + ': Average window too small')
     
-    result = data.rolling(window_length, closed='both').op(*args)
+    result = data.rolling(window_length, closed='both').op(*args) # type: ignore
 
     return original_type(result)
 
@@ -274,7 +274,6 @@ def ask_case():
     return dialog.result
 
 def get_FLIR_model(d_in):
-    import pysr
 
     d_in = Path(d_in)
 
@@ -293,23 +292,16 @@ def get_FLIR_model(d_in):
 
     x = sp.symbols('FLIR_Intensity')
 
-    logging.getLogger('pysr').setLevel(logging.WARNING)
+    if case == 1:
+        with open(Path(r'/FLIR_fits/High/high.sp'), 'r') as f:
+            high_fit = sp.sympify(f.read())
 
-    stdout = sys.stdout
-    stderr = sys.stderr
+        model = sp.lambdify(x, high_fit, modules='numpy')
 
-    with open(os.devnull, 'w') as devnull:
-        sys.stdout = devnull
-        sys.stderr = devnull
+    else:
+        with open(Path(r'/FLIR_fits/Low/low.sp'), 'r') as f:
+            low_fit = sp.sympify(f.read())
 
-        if case == 1:
-            high_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best', verbosity=0)
-            model = sp.lambdify(x, high_fit.sympy(11), modules='numpy')
-        else:
-            low_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best', verbosity=0)
-            model = sp.lambdify(x, low_fit.sympy(), modules='numpy')
-        
-        sys.stdout = stdout
-        sys.stderr = stderr
+        model = sp.lambdify(x, low_fit, modules='numpy')
 
     return model

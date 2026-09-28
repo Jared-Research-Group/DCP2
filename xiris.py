@@ -70,6 +70,9 @@ def buildVideoCV2(dir, **kwargs):
     dir = Path(dir)
 
     input_filename = dir / 'Xiris' / 'raw'
+    if not os.access(input_filename, os.R_OK):
+        input_filename = dir / 'Xiris__raw'
+
     output_filenames = ['Xiris/raw', 'Xiris.mp4', 'Xiris_Frames']
     [input_dir, [untouched_dir, output_video, output_dir]] = helper_functions.setup_directory_structure(dir, input_filename, output_filenames, **kwargs)
 
