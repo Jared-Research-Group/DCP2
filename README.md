@@ -2,10 +2,10 @@
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
-python Data_Processing.py
+python data_postprocessing.py
 
-# Data_Processing.py
-The main function. It will prompt the user to select a data folder from an experiment. Then, it goes through the folder, identifies what data files are in it and executes functions to further process the data to more usable forms. The other Python scripts listed here are modules with functions to process different data types.
+# data_postprocessing.py
+The main function. It will prompt the user to select a build folder from an experiment. Then, it goes through the folder, seperates raw data from modified data, and executes functions to further process the data to more usable forms. The other Python scripts listed here are modules with functions to process different data types.
 # audio_conversion.py
 Converts audio recorded in CSV format to WAV format to enable listening
 
@@ -15,8 +15,17 @@ Multiplies the voltage and current readings collected from the Miller LEM Box by
 # robotdata_parsing.py
 Takes robot messages recorded in text document with XML format and parses them, writing them to a CSV file
 
-# create_flirvideo
+# create_flirvideo.py
 Take FLIR data saved in numpy format and creates color mapped image frames and a video for viewing
 
-# create_xirisvideo.py
-....
+# xiris.py
+Build Xiris video (greyscale)
+
+# thermocouple.py
+Performs operations on thermocouple data.
+
+# batch_process.py
+Adds functionality for iterating over multiple data folders / build scale processing
+
+# helper_functions.py
+Collection of helpers for setup, data manipulation. Currently contains lots of things only used in mason-dev.

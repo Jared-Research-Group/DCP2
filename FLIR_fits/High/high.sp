@@ -1,0 +1,1 @@
+Add(Mul(Float('0.014235983999999924', precision=53), Symbol('FLIR_Intensity')), Float('900.56050000000005', precision=53), Mul(Integer(-1), Float('5195.0100000000002', precision=53), Pow(log(Add(Symbol('FLIR_Intensity'), Float('-4498.3486000000003', precision=53))), Integer(-1))))
