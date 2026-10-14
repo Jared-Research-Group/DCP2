@@ -287,13 +287,13 @@ def get_FLIR_model(d_in):
     x = sp.symbols('FLIR_Intensity')
 
     if case == 1:
-        with open(Path(r'/FLIR_fits/High/high.sp'), 'r') as f:
+        with open(Path(r'FLIR_fits/High/high.sp'), 'r') as f:
             high_fit = sp.sympify(f.read())
 
         model = sp.lambdify(x, high_fit, modules='numpy')
 
     else:
-        with open(Path(r'/FLIR_fits/Low/low.sp'), 'r') as f:
+        with open(Path(r'FLIR_fits/Low/low.sp'), 'r') as f:
             low_fit = sp.sympify(f.read())
 
         model = sp.lambdify(x, low_fit, modules='numpy')
