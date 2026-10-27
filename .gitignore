@@ -196,3 +196,5 @@ cython_debug/
 *.c
 *.cpp
 *.pyd
+.vscode/settings.json
+.vscode/launch.json
