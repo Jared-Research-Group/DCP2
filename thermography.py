@@ -1,3 +1,5 @@
+# distutils: language=c++
+
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.colors as colors
@@ -113,6 +115,8 @@ def getFrameData(dir, pix=None, printFlag=True):
     framePaths     = []
     times          = []
 
+    numFrames = len([p for p in Path(dir).iterdir() if p.is_file()])        # used to print progress bar in recursive file search
+
     # function called in recursive file search
     def getPixelIntensityTrend(e):
         nonlocal pix
@@ -165,13 +169,11 @@ def getFrameData(dir, pix=None, printFlag=True):
     return timestamps, df['frame_paths'].to_list()
     
 
-def getTempData(df, dir, model=None, sparsity=None):
-
-    if model is None:
-        model = get_FLIR_model(dir)
+def getTempData(df, dir, sparsity=None):
+    model = get_FLIR_model(dir)
 
     intensity = df['i_pix'].to_list()
-    intensity = np.asarray(intensity)
+    intensity = np.array(intensity)
 
     # only care about every [sparsity]th value. Saves memory
     if sparsity is not None:

@@ -287,15 +287,23 @@ def get_FLIR_model(d_in):
     with open(d_in / 'FLIR_Variables.json', 'r') as json_file:
         params = json.load(json_file)
 
-    if 'case' in params:
+
+    if params['J1'] == 7.436957359313965:
+        case = 1
+
+    elif params['J1'] == 57.55026626586914:
+        case = 0
+
+    elif 'case' in params:
         case = int(params['case'])
+
     else:
-
         case = ask_case()                   # dialog needs to close after button press. json assignment doesnt work, and need to rewrite file.
-        params["case"] = str(case)
 
-        with open(d_in / 'FLIR_Variables.json', 'w') as json_file:
-            json.dump(params, json_file, indent=2)
+    # save case for backcompatibility
+    params["case"] = str(case)
+    with open(d_in / 'FLIR_Variables.json', 'w') as json_file:
+        json.dump(params, json_file, indent=2)
 
     x = sp.symbols('FLIR_Intensity')
 
