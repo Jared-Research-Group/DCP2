@@ -3,9 +3,10 @@ import numpy as np
 import skimage
 import scipy
 from pathlib import Path
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta, datetime
 from functools import partial
 import matplotlib.pyplot as plt
+import zarr
 
 import helper_functions
 import batch_process
@@ -16,35 +17,36 @@ logger = helper_functions.setup_logger(__name__)
 # the assumption is that the robot starts moving the moment arc initiation voltage drops
 def temporal_alignment(dir, ignition_wait_time = .2, flag_plot = False):
 
-    dir = Path(dir)
+    root = zarr.open_group(dir)
 
     # commanded time (in indices) that the robot idles at weld start before robot motion begins
     ignition_wait_id = int(ignition_wait_time * 250)
 
-    # read modified data. TODO: this operation should happen in memory
-    ps  = pd.read_csv(dir / 'lembox_data__clean.csv', parse_dates=['Timestamp'])
-    rob = pd.read_csv(dir / 'robot_data__clean.csv', parse_dates=['SystemTime'])
+    ps  = helper_functions.zarr_to_df(root['LEMBox'])
+    rob = helper_functions.zarr_to_df(root['RSI'])
 
     try:
-        mic = pd.read_csv(dir / 'microphone_data__clean.csv', parse_dates=['Absolute Time'])
+        mic = helper_functions.zarr_to_df(root['Microphone'])
     except Exception as e:
         logger.warning('microphone_data__clean.csv not found. continuing...')
         mic = None
 
     # data with features we plan to align to
-    data  = {'power supply': [ps['Scaled_Voltage(V)']], 'robot': [rob['RIst_X'], rob['RIst_Y']],}
+    data  = {'power supply': [ps['Voltage(V)']], 'robot': [rob['RIst_X'], rob['RIst_Y']],}
     if mic is not None:
         data['microphone'] = [mic['Amplitude']]
 
-    sr    = {'power supply': 20e3, 'robot': 250, 'microphone': 48e3}
+    sr    = {'power supply': root['LEMBox'].attrs['acquisition_rate'], 'robot': root['RSI'].attrs['acquisition_rate']}
+    if mic is not None:
+        sr['microphone'] = root['Microphone'].attrs['acquisition_rate']
 
     # start with rough interpolated times for power supply, microphone. This ensures that things are sequential for peak detection
     time  = {
-        'power supply': pd.Series((ps['Timestamp'][0] + timedelta(hours=5)).timestamp() + np.arange(len(ps)) * (1/sr['power supply'])),
-        'robot': np.asarray([(t + timedelta(hours=5)).timestamp() for t in rob['SystemTime']]), # to timestamp
+        'power supply': data['power supply']['time'],
+        'robot': data['robot']['time'], # to timestamp
     }
     if mic is not None:
-        time['microphone'] = pd.Series((mic['Absolute Time'][0] + timedelta(hours=5)).timestamp() + np.arange(len(mic)) * (1/sr['microphone']))
+        time['microphone'] = data['microphone']['time']
 
     if flag_plot:
         plt.rcParams['lines.markersize'] = .1
@@ -128,7 +130,7 @@ def temporal_alignment(dir, ignition_wait_time = .2, flag_plot = False):
     weld_stop_id = {'power supply':peaks['power supply'][0][-1]}
 
     if weld_stop_id['power supply'] >= len(ps):
-        weld_stop_id['power supply'] = len(ups) - 1
+        weld_stop_id['power supply'] = len(ps) - 1
 
     if flag_plot:
         fig.suptitle('Visualize weld start samples')
@@ -171,14 +173,22 @@ def temporal_alignment(dir, ignition_wait_time = .2, flag_plot = False):
         plt.show()
 
     # save data with new timestamps
-    ps .to_csv(dir / 'lembox_data__clean.csv'    , index=False)
-    rob.to_csv(dir / 'robot_data__clean.csv'     , index=False)
+
+    root['LEMBox']['time'][:] = time['power supply']
+    root['RSI']   ['time'][:] = time['robot']
 
     if mic is not None:
-        mic.to_csv(dir / 'microphone_data__clean.csv', index=False)
+        root['Microphone']['time'][:] = time['microphone']
+
+    is_welding = helper_functions.zarr_create_group(root['derived'], 'flag_is_welding', dtype = bool)
+    is_welding['data'][:] = flag_is_welding
+    is_welding['time'] = time['robot']
+
 
 if __name__ == '__main__':
 
-    [dir, _] = helper_functions.setup_kwargs(__name__)
+    dir = helper_functions.selectFolder()
 
-    batch_process.dataSearch(dir, partial(temporal_alignment, ignition_wait_time=.2, flag_plot=True))
+    temporal_alignment(dir, flag_plot=True)
+
+    #batch_process.dataSearch(dir, partial(temporal_alignment, ignition_wait_time=.2, flag_plot=True))

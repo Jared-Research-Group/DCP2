@@ -40,8 +40,6 @@ class BaseSensor:
         self.dtype            = np.float64
         self.columns          = tuple()
 
-        self.data_names       = tuple()
-
         self.group            = None
         self.time_chunk       = None
         self.data_chunk       = None
@@ -61,7 +59,7 @@ class BaseSensor:
                 self.time = self.group['time']
 
                 self.acquisition_rate = self.group.attrs['acquisition_rate']
-                self.data_names        = self.group.attrs['data_names']
+                self.columns        = self.group.attrs['columns']
                 self.dtype = self.data.dtype
                 if len(self.data.shape) > 1: self.shape = self.data.shape[1:]
                 
@@ -107,17 +105,15 @@ class BaseSensor:
         self.time = self.group.create_array(name = 'time', 
                                             shape = (0,), 
                                             chunks = self.time_chunk, 
-                                            dimension_names = ('time',),
                                             dtype = np.uint64)
         
         self.data = self.group.create_array(name = 'data', 
                                             shape = (0,) + self.shape, 
                                             chunks = self.data_chunk, 
-                                            dimension_names = ('sample',) + self.columns,
                                             dtype = self.dtype)
 
         self.group.attrs['acquisition_rate'] = self.acquisition_rate
-        self.group.attrs['data_names']       = self.data_names
+        self.group.attrs['columns']       = self.columns
 
     def display_data(self, flag_sparse_plot = True):
 
@@ -137,9 +133,9 @@ class BaseSensor:
         else:                     data = self.data[:][idx].T
                           
         for i, row in enumerate(data):
-            df[self.data_names[i]] = row
+            df[self.columns[i]] = row
 
-            fig = px.scatter(data_frame = df, x = 'Time', y = self.data_names[i])
+            fig = px.scatter(data_frame = df, x = 'Time', y = self.columns[i])
             fig.update_traces(marker = {'size': 4 - (len(df['Time']) * (2 / 1e5))})
             fig.show()
 
@@ -153,9 +149,7 @@ class LEMBox(BaseSensor):
         self.name = 'LEMBox'
         self.acquisition_rate = 20e3
         self.shape = (2,)
-        self.columns = ('data',)
-
-        self.data_names = ('Voltage(V)', 'Current(A)')
+        self.columns = ('Voltage(V)', 'Curent(A)')
 
     def _convert_data(self):
 
@@ -189,9 +183,7 @@ class ThermocoupleDAQ(BaseSensor):
         self.name = 'ThermocoupleDAQ'
         self.acquisition_rate = 3.5
         self.shape = (4,)
-        self.columns = ('data',)
-
-        self.data_names = ('Channel 0', 'Channel 1', 'Channel 2', 'Channel 3')
+        self.columns = ('TC0', 'TC1', 'TC2', 'TC3')
 
     def _convert_data(self):
 
@@ -223,7 +215,7 @@ class Microphone(BaseSensor):
         self.name = 'Microphone'
         self.acquisition_rate = 48e3
 
-        self.data_names = ('Amplitude',)
+        self.columns = ('Amplitude',)
 
     def _convert_data(self):
 
@@ -249,7 +241,7 @@ class RSI(BaseSensor):
         self.name = 'RSI'
         self.acquisition_rate = 250
 
-        self.data_names = ('JSON',)
+        self.columns = ('JSON',)
 
     def _convert_data(self):
 
@@ -281,8 +273,8 @@ class RSI(BaseSensor):
                     if prev_IPOC == '':
 
                         # extract column names, build 
-                        self.data_names = tuple(name for name in parsed_data.keys() if name != 'Rob_Type')
-                        self.shape = (len(self.data_names),)
+                        self.columns = tuple(name for name in parsed_data.keys() if name != 'Rob_Type')
+                        self.shape = (len(self.columns),)
                         self.columns = ('data',)
 
                         zarr_root = zarr.open_group(self.path.parent / (self.path.parent.name + '.zarr'))
@@ -333,7 +325,7 @@ class FLIR(BaseSensor):
         self.name = 'FLIR'
         self.acquisition_rate = 30
         self.shape = (348, 464)
-        self.columns = ('rows', 'cols')
+        self.columns = ('FLIR')
 
     def _convert_data(self):
 
@@ -374,7 +366,7 @@ class Xiris(BaseSensor):
         self.name = 'Xiris'
         self.acquisition_rate = 50
         self.shape = (512, 640)
-        self.columns = ('rows', 'cols')
+        self.columns = ('Xiris')
 
     def _build_arrays(self):
 
@@ -383,7 +375,6 @@ class Xiris(BaseSensor):
         self.meta = self.group.create_array(name = 'meta',
                                             shape = (0,),
                                                      chunks = self.time_chunk,
-                                                     dimension_names=('time',),
                                                      dtype = 'U180')
 
     @staticmethod

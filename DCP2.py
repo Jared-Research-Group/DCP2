@@ -1,6 +1,7 @@
 import zarr
 import helper_functions
 import sensors
+from pathlib import Path
 
 def backcompatiblity(dir = None):
 
@@ -36,5 +37,12 @@ if __name__ == '__main__':
 
     dir = helper_functions.selectFolder()
 
-    if not dir.endswith('.zarr'):
+    if not dir.name.endswith('.zarr'):
         backcompatiblity(dir)
+
+        dir = Path(str(dir) + '.zarr')
+
+    root = zarr.open_group(dir)
+
+    if not 'derived' in root:
+        root.create_group('derived')

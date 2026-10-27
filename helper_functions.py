@@ -12,6 +12,8 @@ from pathlib import Path
 import shutil
 import logging
 import sys
+import zarr
+import math
 
 import tkinter as tk
 from tkinter import filedialog
@@ -150,7 +152,7 @@ def selectFolder(title='Select Top-Level Folder'):
         parent=root
     )
 
-    return path
+    return Path(path)
 
 def selectFile(title='Select File'):
     init_dir = os.path.expanduser('~')
@@ -167,7 +169,7 @@ def selectFile(title='Select File'):
         parent=root
     )
 
-    return path
+    return Path(path)
 
 def setup_kwargs(name, num_outputs=1):
 
@@ -325,3 +327,41 @@ def get_FLIR_model(d_in):
         
     sys.stdout = stdout
     sys.stderr = stderr
+
+def zarr_to_df(zarr_group: zarr.Group):
+
+    data = []
+    names = []
+    for name, arr in zarr_group.arrays():
+
+        if name == 'data':
+            names = [names, zarr_group.attrs['columns']]
+            d = arr[:].T
+            data  = np.concat((data , arr[:].T))
+        else:
+            data.append(arr[:])
+            d = arr[:]
+            names.append(name)
+
+        print(d)
+
+    return pd.DataFrame(data = data, columns = names)
+
+def zarr_create_group(parent, name, time_chunk = None, data_chunk = None, dtype = float):
+
+    if time_chunk is None: time_chunk = (math.ceil(10 ** 6 / 8),)
+    if data_chunk is None: data_chunk = time_chunk
+
+    group = parent.create_group(name)
+
+    group.create_array(name = 'time', 
+                       shape = (0,), 
+                       chunks = time_chunk, 
+                       dtype = np.uint64)
+    
+    group.create_array(name = 'data', 
+                       shape = (0,),
+                       chunks = data_chunk, 
+                       dtype = dtype)
+
+    return group
