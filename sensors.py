@@ -10,6 +10,8 @@ import datetime
 import xml.etree.ElementTree as ET
 import tqdm
 from PIL import Image
+import skimage
+import scipy
 
 import helper_functions
 
@@ -47,6 +49,13 @@ class BaseSensor:
         self.data = None
         self.time = None
 
+        self.df = None
+        self.plot_sparsity = 5e4
+
+        self.weld_detection_columns        = tuple()
+        self.weld_detection_start_peak_idx = 0
+        self.weld_detection_threshold_multiplier = 1
+
     def _link_data(self):
         # if the input path is a zarr group, then extract information from the sensor's subgroup, if available
         if self.path.suffix == '.zarr':
@@ -59,9 +68,11 @@ class BaseSensor:
                 self.time = self.group['time']
 
                 self.acquisition_rate = self.group.attrs['acquisition_rate']
-                self.columns        = self.group.attrs['columns']
+                self.columns        = tuple(self.group.attrs['columns'])
                 self.dtype = self.data.dtype
                 if len(self.data.shape) > 1: self.shape = self.data.shape[1:]
+
+                self._get_chunk_sizes()
                 
             except Exception as e:
 
@@ -115,18 +126,25 @@ class BaseSensor:
         self.group.attrs['acquisition_rate'] = self.acquisition_rate
         self.group.attrs['columns']       = self.columns
 
+    def get_df(self):
+
+        if self.df is None:
+            self.df = helper_functions.zarr_to_df(self.group)
+
+        return self.df
+
     def display_data(self, flag_sparse_plot = True):
 
         data_length = len(self.time[:])
 
         # get sparse sampling of data indices for sparse plotting of data if required
-        if data_length > 1e5 and flag_sparse_plot:
-            idx = np.arange(1e5, dtype = int) * int(data_length / 1e5)
+        if data_length > self.plot_sparsity and flag_sparse_plot:
+            idx = np.arange(0, data_length, data_length // self.plot_sparsity, dtype = int)
         else:
             idx = np.arange(data_length, dtype = int)
 
         # convert zarr data to df and plot each variable
-        df = pd.DataFrame({'Time': self.time[:][idx] - self.time[:][0]})
+        df = pd.DataFrame({'Time': self.time[:][idx] - self.time[0]})
         df['Time'] /= 1e9
 
         if self.shape == tuple(): data = [self.data[:][idx].T]
@@ -136,8 +154,64 @@ class BaseSensor:
             df[self.columns[i]] = row
 
             fig = px.scatter(data_frame = df, x = 'Time', y = self.columns[i])
-            fig.update_traces(marker = {'size': 4 - (len(df['Time']) * (2 / 1e5))})
+            fig.update_traces(marker = {'size': 4 - (len(df['Time']) * (2 / self.plot_sparsity))})
             fig.show()
+
+    def detect_welding(self, flag_plot = False, flag_sparse_plot = True):
+
+        if self.weld_detection_columns == tuple():
+            self.weld_detection_columns = self.columns
+
+        if not 'flag_welding' in [arr[0] for arr in self.group.arrays()]:
+
+            self.get_df()
+
+            data = [self.df[col] for col in self.weld_detection_columns]
+            time = self.df['time']
+
+            peaks = []
+
+            for val in data:
+
+                diff = np.diff(val.abs())
+                thresh = skimage.filters.threshold_otsu(diff) * self.weld_detection_threshold_multiplier
+
+                peaks.append(scipy.signal.find_peaks(diff, height = thresh, threshold = thresh)[0] + 1)
+
+            peaks = np.asarray(peaks)
+
+            weld_start_idx = np.partition(peaks.ravel(), 1)[self.weld_detection_start_peak_idx]
+            weld_stop_idx  = len(df) - 1 if peaks.max() >= len(time) else peaks.max()
+
+            flag_welding = [int(idx >= weld_start_idx and idx <= weld_stop_idx) for idx in range(len(time))]
+            self.df['flag_welding'] = flag_welding
+
+            self.group.create_array(name = 'flag_welding', 
+                                    shape = (0,),
+                                    chunks = self.time_chunk, 
+                                    dtype = int)
+
+            self.group['flag_welding'].append(flag_welding)
+
+            df = self.df
+
+            if flag_plot:
+
+                data_length = len(df)
+
+                # get sparse sampling of data indices for sparse plotting of data if required
+                if data_length > self.plot_sparsity and flag_sparse_plot:
+                    idx = np.arange(0, data_length, data_length // self.plot_sparsity, dtype = int)
+                else:
+                    idx = np.arange(data_length, dtype = int)
+
+                df['time'] = (df['time'] - df['time'][0]) * 1e-9
+
+                df = df.iloc[idx]
+
+                fig = px.scatter(df, x = 'time', y = list(self.weld_detection_columns) + ['flag_welding'], title = self.name + ' flag_welding')
+                fig.update_traces(marker = {'size': 4 - (len(df) * (2 / self.plot_sparsity))})
+                fig.show()
 
 class LEMBox(BaseSensor):
 
@@ -150,6 +224,9 @@ class LEMBox(BaseSensor):
         self.acquisition_rate = 20e3
         self.shape = (2,)
         self.columns = ('Voltage(V)', 'Curent(A)')
+
+        self.weld_detection_columns = ('Voltage(V)',)
+        self.weld_detection_start_peak_idx = 1
 
     def _convert_data(self):
 
@@ -217,6 +294,8 @@ class Microphone(BaseSensor):
 
         self.columns = ('Amplitude',)
 
+        self.weld_detection_threshold_multiplier = .1
+
     def _convert_data(self):
 
         df = pd.read_csv(self.path, skiprows = 1).dropna()
@@ -242,6 +321,8 @@ class RSI(BaseSensor):
         self.acquisition_rate = 250
 
         self.columns = ('JSON',)
+
+        self.weld_detection_columns = ('RSol_X', 'RSol_Y')
 
     def _convert_data(self):
 
@@ -275,10 +356,6 @@ class RSI(BaseSensor):
                         # extract column names, build 
                         self.columns = tuple(name for name in parsed_data.keys() if name != 'Rob_Type')
                         self.shape = (len(self.columns),)
-                        self.columns = ('data',)
-
-                        zarr_root = zarr.open_group(self.path.parent / (self.path.parent.name + '.zarr'))
-                        self.group = zarr_root[self.name]
 
                         del self.group['data']
                         del self.group['time']

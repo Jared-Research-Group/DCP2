@@ -152,6 +152,8 @@ def selectFolder(title='Select Top-Level Folder'):
         parent=root
     )
 
+    if path == '': sys.exit()
+
     return Path(path)
 
 def selectFile(title='Select File'):
@@ -168,6 +170,8 @@ def selectFile(title='Select File'):
         initialdir = init_dir,
         parent=root
     )
+
+    if path == '': sys.exit()
 
     return Path(path)
 
@@ -335,17 +339,16 @@ def zarr_to_df(zarr_group: zarr.Group):
     for name, arr in zarr_group.arrays():
 
         if name == 'data':
-            names = [names, zarr_group.attrs['columns']]
-            d = arr[:].T
-            data  = np.concat((data , arr[:].T))
+            names += zarr_group.attrs['columns']
         else:
-            data.append(arr[:])
-            d = arr[:]
             names.append(name)
 
-        print(d)
+        if len(arr.shape) != 1:
+            data += [a for a in arr[:].T]
+        else:
+            data.append(arr[:])
 
-    return pd.DataFrame(data = data, columns = names)
+    return pd.DataFrame(data = np.asarray(data).T, columns = names)
 
 def zarr_create_group(parent, name, time_chunk = None, data_chunk = None, dtype = float):
 

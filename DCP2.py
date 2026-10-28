@@ -3,7 +3,9 @@ import helper_functions
 import sensors
 from pathlib import Path
 
-def backcompatiblity(dir = None):
+sensor_list = (sensors.LEMBox, sensors.Microphone, sensors.ThermocoupleDAQ, sensors.RSI, sensors.FLIR, sensors.Xiris)
+
+def backcompatiblity_constructor(dir = None):
 
     if dir is None:
         dir = helper_functions.selectFolder()
@@ -38,7 +40,7 @@ if __name__ == '__main__':
     dir = helper_functions.selectFolder()
 
     if not dir.name.endswith('.zarr'):
-        backcompatiblity(dir)
+        backcompatiblity_constructor(dir)
 
         dir = Path(str(dir) + '.zarr')
 
@@ -46,3 +48,12 @@ if __name__ == '__main__':
 
     if not 'derived' in root:
         root.create_group('derived')
+
+    lem = sensors.LEMBox(dir)
+    lem.detect_welding(flag_plot = True)
+
+    rsi = sensors.RSI(dir)
+    rsi.detect_welding(flag_plot = True)
+
+    mic = sensors.Microphone(dir)
+    mic.detect_welding(flag_plot = True)
