@@ -286,85 +286,34 @@ def ask_case():
     return dialog.result
 
 def get_FLIR_model(d_in):
-    import pysr
 
     d_in = Path(d_in)
 
     with open(d_in / 'FLIR_Variables.json', 'r') as json_file:
         params = json.load(json_file)
 
-
-    if params['J1'] == 7.436957359313965:
-        case = 1
-
-    elif params['J1'] == 57.55026626586914:
-        case = 0
-
-    elif 'case' in params:
+    if 'case' in params:
         case = int(params['case'])
-
     else:
-        case = ask_case()                   # dialog needs to close after button press. json assignment doesnt work, and need to rewrite file.
 
-    # save case for backcompatibility
-    params["case"] = str(case)
-    with open(d_in / 'FLIR_Variables.json', 'w') as json_file:
-        json.dump(params, json_file, indent=2)
+        case = ask_case()                   # dialog needs to close after button press. json assignment doesnt work, and need to rewrite file.
+        params["case"] = str(case)
+
+        with open(d_in / 'FLIR_Variables.json', 'w') as json_file:
+            json.dump(params, json_file, indent=2)
 
     x = sp.symbols('FLIR_Intensity')
 
-    logging.getLogger('pysr').setLevel(logging.WARNING)
+    if case == 1:
+        with open(Path(r'/FLIR_fits/High/high.sp'), 'r') as f:
+            high_fit = sp.sympify(f.read())
 
-    stdout = sys.stdout
-    stderr = sys.stderr
+        model = sp.lambdify(x, high_fit, modules='numpy')
 
-    with open(os.devnull, 'w') as devnull:
-        sys.stdout = devnull
-        sys.stderr = devnull
+    else:
+        with open(Path(r'/FLIR_fits/Low/low.sp'), 'r') as f:
+            low_fit = sp.sympify(f.read())
 
-        if case == 1:
-            high_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/High', model_selection='best', verbosity=0)
-            return sp.lambdify(x, high_fit.sympy(11), modules='numpy')
-        else:
-            low_fit = pysr.PySRRegressor().from_file(run_directory=os.getcwd() + '/FLIR_fits/Low', model_selection='best', verbosity=0)
-            return sp.lambdify(x, low_fit.sympy(), modules='numpy')
-        
-    sys.stdout = stdout
-    sys.stderr = stderr
+        model = sp.lambdify(x, low_fit, modules='numpy')
 
-def zarr_to_df(zarr_group: zarr.Group):
-
-    data = []
-    names = []
-    for name, arr in zarr_group.arrays():
-
-        if name == 'data':
-            names += zarr_group.attrs['columns']
-        else:
-            names.append(name)
-
-        if len(arr.shape) != 1:
-            data += [a for a in arr[:].T]
-        else:
-            data.append(arr[:])
-
-    return pd.DataFrame(data = np.asarray(data).T, columns = names)
-
-def zarr_create_group(parent, name, time_chunk = None, data_chunk = None, dtype = float):
-
-    if time_chunk is None: time_chunk = (math.ceil(10 ** 6 / 8),)
-    if data_chunk is None: data_chunk = time_chunk
-
-    group = parent.create_group(name)
-
-    group.create_array(name = 'time', 
-                       shape = (0,), 
-                       chunks = time_chunk, 
-                       dtype = np.uint64)
-    
-    group.create_array(name = 'data', 
-                       shape = (0,),
-                       chunks = data_chunk, 
-                       dtype = dtype)
-
-    return group
+    return model
